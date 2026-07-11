@@ -42,7 +42,66 @@ class HeadingPrimitiveFunctionTest {
     }
 
     @Test
-    fun `content can be matched and conditionally wrapped`() {
+    fun `content can be matched and conditionally wrapped (where)`() {
+        execute(
+            """
+             .noautopagebreak
+
+            .extend {heading} where:{depth: .depth::equals {2}}
+                 content:
+                 .super foreground:{red}
+            
+            .extend {heading} where:{content: .content::equals {Hi}}
+                 content:
+                 .container
+                     .super 
+
+             # Hello
+
+             ## Hi
+             
+             ## Hello
+
+             ### Hi
+             
+             ### Hey
+            """.trimIndent(),
+        ) {
+            assertEquals(
+                "<h1>Hello</h1>" +
+                    "<div class=\"container\"><h2 style=\"color: rgba(255, 0, 0, 1.0);\">Hi</h2></div>" +
+                    "<h2 style=\"color: rgba(255, 0, 0, 1.0);\">Hello</h2>" +
+                    "<div class=\"container\"><h3>Hi</h3></div>" +
+                    "<h3>Hey</h3>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `ref can be matched and conditionally styled (where)`() {
+        execute(
+            """
+            .noautopagebreak
+
+            .extend {heading} where:{ref: .ref::equals {title}}
+                .super foreground:{blue}
+
+            # Test {#title}
+
+            ## Test
+            """.trimIndent(),
+        ) {
+            assertEquals(
+                "<h1 id=\"title\" style=\"color: rgba(0, 0, 255, 1.0);\">Test</h1>" +
+                    "<h2>Test</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `content can be matched and conditionally wrapped (if)`() {
         execute(
             """
             .noautopagebreak
@@ -66,6 +125,23 @@ class HeadingPrimitiveFunctionTest {
                 "<h1>Hello</h1><div class=\"container\"><h2>Hi</h2></div><h3>Hey</h3>",
                 it,
             )
+        }
+    }
+
+    @Test
+    fun `content can be matched against pattern`() {
+        execute(
+            """
+            .extend {heading}
+                content:
+                .super
+                    .content::match {[Qq]uark(down|s)?}
+                        *.1*
+            
+            ## Quarkdown takes its name from quarks
+            """.trimIndent(),
+        ) {
+            assertEquals("<h2><em>Quarkdown</em> takes its name from <em>quarks</em></h2>", it)
         }
     }
 
@@ -160,7 +236,7 @@ class HeadingPrimitiveFunctionTest {
             .extend {heading}
                 depth:
                 .super foreground:{red} \
-                       background:{.takeif {red} {@lambda .depth::islower than:{3}}} \
+                       background:{.takeif {red} {.depth::islower than:{3}}} \
                        fontvariant:{smallcaps}
 
             ## Hello
@@ -171,6 +247,25 @@ class HeadingPrimitiveFunctionTest {
             assertEquals(
                 "<h2 style=\"color: rgba(255, 0, 0, 1.0); background-color: rgba(255, 0, 0, 1.0); font-variant: small-caps;\">Hello</h2>" +
                     "<h3 style=\"color: rgba(255, 0, 0, 1.0); font-variant: small-caps;\">Hello</h3>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `icon can be used as content`() {
+        execute(
+            """
+            .extend {heading}
+                content:
+                .super
+                    .icon {boxes} *.content*!
+            
+            ## Heading
+            """.trimIndent(),
+        ) {
+            assertEquals(
+                "<h2><i class=\"icon-image bi bi-boxes\" aria-hidden=\"true\"></i> <em>Heading</em>!</h2>",
                 it,
             )
         }
@@ -258,7 +353,7 @@ class HeadingPrimitiveFunctionTest {
             
             .extend {heading}
                 content:
-                .container foreground:{.takeif {red} {@lambda .content::plaintext::equals {Hello}}}
+                .container foreground:{.takeif {red} {.content::plaintext::equals {Hello}}}
                     .super
             
             # Hello

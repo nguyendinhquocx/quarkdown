@@ -160,11 +160,10 @@ fun ifNot(
  *
  * > Output: `a`
  *
- * Note that, like any lambda, its content can be inlined by means of the `@lambda` annotation.
- * The previous snippet can be simplified as follows:
+ * Its content can also be inlined. The previous snippet can be simplified as follows:
  *
  * ```
- * .foreach {.collection} {@lambda item: .item::lowercase}::first
+ * .foreach {.collection} {item: .item::lowercase}::first
  * ```
  *
  * @param iterable collection to iterate
@@ -349,7 +348,30 @@ fun function(
  *
  * > Output: `Hello, JOHN`
  *
+ * If [condition] is defined, it is checked against every function call.
+ * If the condition is not met, the call falls back to the original function definition.
+ * The following snippets have identical behavior:
+ *
+ * - ```
+ *   .extend {greet} where:{name: .name::equals {World}}
+ *       name:
+ *       .super::uppercase
+ *   ```
+ *
+ * - ```
+ *   .extend {greet}
+ *       name:
+ *       .if {.name::equals {World}}
+ *           .super::uppercase
+ *       .ifnot {.name::equals {World}}
+ *           .super
+ *   ```
+ *
+ * Function extension is the backbone of element styling, when extending primitive functions such as [heading].
+ *
  * @param name name of the existing function to extend
+ * @param condition optional condition to meet. Takes the same parameters as [body].
+ *                  If the condition is not met, the call falls back to the original function definition
  * @param body wrapper content. Its explicit parameters, if any, must match the original function's
  *             parameter names. `.super` is implicitly available within the body
  * @throws IllegalArgumentException if no function named [name] exists, or if any explicit parameter
@@ -360,9 +382,10 @@ fun function(
 fun extend(
     @Injected context: MutableContext,
     name: String,
+    @Name("where") condition: Lambda? = null,
     @Body body: Lambda,
 ): VoidValue {
-    extendFunction(context, name, body)
+    extendFunction(context, name, condition, body)
     return VoidValue
 }
 

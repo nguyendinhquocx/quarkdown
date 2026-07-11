@@ -6,9 +6,37 @@
 
 &nbsp;
 
-#### Full styling options on `.heading`
+#### [Element styling](https://quarkdown.com/wiki/element-styling) (show-rules)
 
-`.container`'s styling options, such as `foreground`, `background`, `border`, `padding`, and `fontsize`, are now available on `.heading` as well. This allows for full customization without needing to wrap the heading in a container.
+> [!NOTE]
+> This feature is experimental.
+
+When `.extend` is applied to a function of the [*Primitives* module](https://quarkdown.com/docs/quarkdown-stdlib/com.quarkdown.stdlib.module.Primitives/index.html), its new behavior is reflected on its Markdown counterpart. For example, extending the `.heading` function affects the `# Heading` Markdown element.
+
+This is one of the biggest milestones for Quarkdown, on par with Typst's `#show` rules.
+
+```markdown
+.extend {heading}
+    content:
+    .super foreground:{blue}
+        *.content*
+
+## A heading <!-- Renders blue and italic -->
+```
+
+This release ships with a handful of primitives as an experimental feature. The plan is to eventually have every Markdown element type backed by a primitive function.
+
+&nbsp;
+
+#### [New primitive: `.paragraph`]
+
+The new `.paragraph` primitive backs Markdown paragraphs, enabling paragraph-level extensions via `.extend {paragraph}`.
+
+&nbsp;
+
+#### [Full styling options on `.heading` and `.paragraph`](https://quarkdown.com/wiki/element-styling-properties)
+
+`.container`'s styling options, such as `foreground`, `background`, `border`, `padding`, and `fontsize`, are now available on `.heading` and `.paragraph` as well. This allows for full customization without needing to wrap the element in a container.
 
 ```markdown
 .heading {Introduction} depth:{1} background:{blue} radius:{8px}
@@ -22,7 +50,16 @@ This plays particularly well with the new primitive extension system:
     .super background:{red} foreground:{white} padding:{10px}
 ```
 
-The plan is to eventually extend these options to all element types and primitive functions.
+&nbsp;
+
+#### [Conditional `.extend`](https://quarkdown.com/wiki/extending-functions)
+
+`.extend`'s new `where` parameter defines a condition to meet. If not met, the behavior falls back to the original function definition.
+
+```markdown
+.extend {heading} where:{depth: .depth::islower than:{3}}
+    .super background:{teal}
+```
 
 &nbsp;
 
@@ -39,11 +76,41 @@ Output:
 
 > **Quarkdown** takes its name from **quarks**
 
-Matches are searched within plain text leaves only, so existing inline structure such as links, emphasis, and code spans is preserved around them. The lambda receives the matched substring as its single argument, available as `.1` (or via a named parameter), and returns the inline content to insert in its place.
+This is particularly useful for element styling:
+
+```markdown
+.extend {heading}
+    content:
+    .super
+        .content::match {[Qq]uark(down|s)?}
+            *.1*
+
+## Quarkdown takes its name from quarks
+```
 
 &nbsp;
 
 ### Changed
+
+&nbsp;
+
+#### [Inline lambdas without `@lambda`](https://quarkdown.com/wiki/lambda#inline-lambda)
+
+Inline lambdas passed as arguments no longer require the `@lambda` prefix. When the target parameter is a `Lambda`, the argument is parsed as a lambda directly.
+
+```markdown
+.num::takeif {x: .x::equals {5}}
+```
+
+```markdown
+.mydictionary::sorted by:{name value: .value}
+
+```markdown
+.extend {heading} where:{depth: .depth::islower than:{3}}
+    .super background:{teal}
+```
+
+The `@lambda` prefix is still accepted for backward compatibility with older documents.
 
 &nbsp;
 

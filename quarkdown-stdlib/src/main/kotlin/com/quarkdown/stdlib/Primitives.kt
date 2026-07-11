@@ -5,6 +5,7 @@ package com.quarkdown.stdlib
 import com.quarkdown.core.ast.InlineMarkdownContent
 import com.quarkdown.core.ast.MarkdownContent
 import com.quarkdown.core.ast.base.block.Heading
+import com.quarkdown.core.ast.base.block.Paragraph
 import com.quarkdown.core.ast.base.inline.Image
 import com.quarkdown.core.ast.base.inline.Link
 import com.quarkdown.core.ast.quarkdown.block.Figure
@@ -32,6 +33,15 @@ import com.quarkdown.processor.annotation.Spread
  * .heading {My heading} depth:{2} numbered:{no}
  * ```
  *
+ * As a [Heading] primitive, this function can be used in `.extend` to affect all headings in the document:
+ *
+ * ```markdown
+ * .extend {heading} where:{depth: .depth::equals {1}}
+ *     content:
+ *     .super foreground:{blue}
+ *         *.content*
+ * ```
+ *
  * @param content inline content of the heading
  * @param depth importance level of the heading (1 for H1, 6 for H6). For 0-depth, see [marker] instead
  * @param customId optional custom identifier for cross-referencing. If unset, the ID is automatically generated
@@ -51,7 +61,7 @@ fun heading(
     @Name("numbered") canTrackLocation: Boolean = true,
     @Name("indexed") includeInTableOfContents: Boolean = true,
     @Name("breakpage") canBreakPage: Boolean = true,
-    @Spread style: StyleOptions = StyleOptions(),
+    @Spread style: StyleOptions = StyleOptions.DEFAULT,
 ): NodeValue {
     require(depth in Heading.MIN_DEPTH..Heading.MAX_DEPTH) {
         "Heading depth must be between ${Heading.MIN_DEPTH} and ${Heading.MAX_DEPTH}, but got $depth."
@@ -67,6 +77,25 @@ fun heading(
         style = style.toNodeStyle(),
     ).let(::NodeValue)
 }
+
+/**
+ * Creates a paragraph with fine-grained control over its properties.
+ *
+ * As a [Paragraph] primitive, this function can be used in `.extend` to affect all paragraphs in the document:
+ *
+ * ```markdown
+ * .extend {paragraph}
+ *     .super foreground:{gray}
+ * ```
+ */
+@QFunction
+fun paragraph(
+    @Body content: InlineMarkdownContent,
+    @Spread style: StyleOptions = StyleOptions.DEFAULT,
+) = Paragraph(
+    text = content.children,
+    style = style.toNodeStyle(),
+).wrappedAsValue()
 
 /**
  * Creates an image with fine-grained control over its properties,
