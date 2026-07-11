@@ -1,13 +1,24 @@
 package com.quarkdown.core.ast.base.block
 
+import com.quarkdown.amber.annotations.Diverge
 import com.quarkdown.core.ast.InlineContent
+import com.quarkdown.core.ast.InlineMarkdownContent
 import com.quarkdown.core.ast.attributes.id.Identifiable
 import com.quarkdown.core.ast.attributes.id.IdentifierProvider
 import com.quarkdown.core.ast.attributes.localization.LocalizedKind
 import com.quarkdown.core.ast.attributes.localization.LocalizedKindKeys
 import com.quarkdown.core.ast.attributes.location.LocationTrackableNode
+import com.quarkdown.core.ast.attributes.primitive.PrimitiveFunctionBackedNode
+import com.quarkdown.core.ast.attributes.style.NodeStyle
+import com.quarkdown.core.ast.attributes.style.StylableNode
 import com.quarkdown.core.ast.base.TextNode
 import com.quarkdown.core.ast.quarkdown.reference.CrossReferenceableNode
+import com.quarkdown.core.function.call.FunctionCallArgument
+import com.quarkdown.core.function.value.BooleanValue
+import com.quarkdown.core.function.value.NoneValue
+import com.quarkdown.core.function.value.NumberValue
+import com.quarkdown.core.function.value.StringValue
+import com.quarkdown.core.function.value.wrappedAsValue
 import com.quarkdown.core.visitor.node.NodeVisitor
 
 /**
@@ -26,16 +37,19 @@ import com.quarkdown.core.visitor.node.NodeVisitor
  */
 class Heading(
     val depth: Int,
-    override val text: InlineContent,
+    @Diverge override val text: InlineContent,
     val customId: String? = null,
     val canBreakPage: Boolean = true,
     override val canTrackLocation: Boolean = true,
     val excludeFromTableOfContents: Boolean = false,
+    override val style: NodeStyle = NodeStyle(),
 ) : TextNode,
     Identifiable,
     LocationTrackableNode,
     CrossReferenceableNode,
-    LocalizedKind {
+    LocalizedKind,
+    StylableNode,
+    PrimitiveFunctionBackedNode {
     override fun <T> accept(visitor: NodeVisitor<T>) = visitor.visit(this)
 
     override fun <T> accept(visitor: IdentifierProvider<T>) = visitor.visit(this)
@@ -54,6 +68,19 @@ class Heading(
      */
     override val referenceId: String?
         get() = this.customId
+
+    override val backingFunctionName: String
+        get() = "heading"
+
+    override fun toFunctionCallArguments() =
+        listOf(
+            FunctionCallArgument(name = "content", expression = InlineMarkdownContent(text).wrappedAsValue()),
+            FunctionCallArgument(name = "depth", expression = NumberValue(depth)),
+            FunctionCallArgument(name = "ref", expression = referenceId?.let(::StringValue) ?: NoneValue),
+            FunctionCallArgument(name = "numbered", expression = BooleanValue(canTrackLocation)),
+            FunctionCallArgument(name = "indexed", expression = BooleanValue(!excludeFromTableOfContents)),
+            FunctionCallArgument(name = "breakpage", expression = BooleanValue(canBreakPage)),
+        )
 
     companion object {
         /**

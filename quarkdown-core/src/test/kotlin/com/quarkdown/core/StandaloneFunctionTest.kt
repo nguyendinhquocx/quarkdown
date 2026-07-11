@@ -1,6 +1,6 @@
 package com.quarkdown.core
 
-import com.quarkdown.core.ast.quarkdown.block.Container
+import com.quarkdown.core.ast.attributes.style.NodeStyle
 import com.quarkdown.core.context.MutableContext
 import com.quarkdown.core.document.DocumentType
 import com.quarkdown.core.flavor.quarkdown.QuarkdownFlavor
@@ -21,6 +21,7 @@ import com.quarkdown.core.function.expression.ComposedExpression
 import com.quarkdown.core.function.library.loader.MultiFunctionLibraryLoader
 import com.quarkdown.core.function.library.module.moduleOf
 import com.quarkdown.core.function.reflect.KFunctionAdapter
+import com.quarkdown.core.function.reflect.annotation.Body
 import com.quarkdown.core.function.reflect.annotation.Injected
 import com.quarkdown.core.function.reflect.annotation.NotForDocumentType
 import com.quarkdown.core.function.reflect.annotation.OnlyForDocumentType
@@ -411,6 +412,50 @@ class StandaloneFunctionTest {
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
+    fun greetWithExplicitBody(
+        @Body content: String,
+        to: String = "you",
+        from: String = "me",
+    ): StringValue = StringValue("Hello $to from $from: $content")
+
+    @Test
+    fun `KFunction with explicit @Body parameter`() {
+        val function = KFunctionAdapter(::greetWithExplicitBody)
+
+        // The body parameter sits first in the signature but a body argument binds to it directly,
+        // while positional arguments fill the remaining parameters in order.
+        val call =
+            FunctionCall(
+                function,
+                arguments =
+                    listOf(
+                        FunctionCallArgument(StringValue("A")),
+                        FunctionCallArgument(StringValue("B")),
+                        FunctionCallArgument(StringValue("hi!"), isBody = true),
+                    ),
+            )
+
+        assertEquals("Hello A from B: hi!", call.execute().unwrappedValue)
+
+        // Naming the reserved body parameter from another argument fails, since it is excluded
+        // from positional and named bindings when a body argument is also present.
+        val invalidCall =
+            FunctionCall(
+                function,
+                arguments =
+                    listOf(
+                        FunctionCallArgument(StringValue("A")),
+                        FunctionCallArgument(StringValue("override"), name = "content"),
+                        FunctionCallArgument(StringValue("hi!"), isBody = true),
+                    ),
+            )
+
+        assertFailsWith<UnresolvedParameterException> {
+            invalidCall.execute()
+        }
+    }
+
+    @Suppress("MemberVisibilityCanBePrivate")
     fun sum(
         a: Int,
         b: Int,
@@ -624,7 +669,7 @@ class StandaloneFunctionTest {
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun echoEnum(value: Container.Alignment) = StringValue(value.name)
+    fun echoEnum(value: NodeStyle.Alignment) = StringValue(value.name)
 
     @Test
     fun `KFunction with enum`() {

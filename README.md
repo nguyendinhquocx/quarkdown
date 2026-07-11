@@ -13,7 +13,12 @@
   <a href="https://www.codefactor.io/repository/github/iamgio/quarkdown"><img alt="CodeFactor" src="https://www.codefactor.io/repository/github/iamgio/quarkdown/badge/main"></a>
   <br><br>
   <a href="https://trendshift.io/repositories/13945" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13945" alt="iamgio%2Fquarkdown | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-  <br><br>
+  <br>
+  <a href="https://www.producthunt.com/products/quarkdown?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-quarkdown" target="_blank" rel="noopener noreferrer"><img alt="Quarkdown - Markdown with superpowers: from ideas to stunning documents. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1130470&amp;theme=light&amp;t=1777150043744"></a>
+  <br>
+</p>
+
+  <p align="center">
   <strong>Releases</strong>
   <br>
   <a href="https://github.com/iamgio/quarkdown/releases/tag/latest">Latest</a>
@@ -98,6 +103,20 @@ whether it's an academic paper, book, knowledge base or interactive presentation
 <p align="center">
 <img src="https://raw.githubusercontent.com/quarkdown-labs/quarkdown-vscode/refs/heads/project-files/live-preview.gif" alt="Live preview" />
 </p>
+
+&nbsp;
+
+*In a nutshell, Quarkdown is...*
+
+- **Familiar:** built on the well-known Markdown syntax, for a flat learning curve
+- **Elegant:** produces output that matches the quality of industry-leading tools
+- **Agent-friendly:** comes with a built-in skill for idiomatic fluency of your coding agents ([read the eval](https://quarkdown.com/blog/agent-skill/))
+- **Customizable:** full control over document layout, aesthetics, and properties
+- **Secure by default:** a restrictive permission system limits access to system resources
+- **Versatile:** a single source compiles to multiple targets
+- **Reactive:** low-latency live previews for rapid iteration. The official wiki (100+ pages) compiles in ~2 seconds
+- **Reusable:** repeated content can be turned into one-line function calls
+- **Easily deployable:** set a CD workflow up in under 3 minutes ([example](https://github.com/iamgio/iamgio.github.io/blob/main/.github/workflows/build.yml))
 
 &nbsp;
 
@@ -255,7 +274,7 @@ curl -fsSL https://raw.githubusercontent.com/quarkdown-labs/get-quarkdown/refs/h
 ```
 
 Root privileges let the script install Quarkdown into `/opt/quarkdown` and its wrapper script into `/usr/local/bin/quarkdown`.  
-If missing, Java 17, Node.js and npm will be installed automatically using the system's package manager.
+If missing, Node.js will be installed automatically using the system's package manager.
 
 For more installation options, check out [get-quarkdown](https://github.com/quarkdown-labs/get-quarkdown).
 
@@ -274,9 +293,7 @@ irm https://raw.githubusercontent.com/quarkdown-labs/get-quarkdown/refs/heads/ma
 ### Scoop (Windows)
 
 ```shell
-scoop bucket add java
-scoop bucket add quarkdown https://github.com/quarkdown-labs/scoop-quarkdown
-scoop install quarkdown
+scoop bucket add quarkdown https://github.com/quarkdown-labs/scoop-quarkdown; scoop install quarkdown
 ```
 
 ### GitHub Actions
@@ -294,16 +311,15 @@ or build it with `gradlew installDist`.
 Optionally, adding `<install_dir>/bin` to your `PATH` allows you easier access Quarkdown.
 
 Requirements:
-- Java 17 or higher
 - (Only for PDF export) Node.js, npm, Puppeteer. See [*PDF export*](https://quarkdown.com/wiki/pdf-export) for details.
 
 </details>
 
 &nbsp;
 
-## Quickstart 🆕
+## Quickstart
 
-New user? You'll find **everything you need** in the **[Quickstart guide](https://quarkdown.com/wiki/quickstart)** to bring life to your first document!
+New user? You'll find **everything you need** in the **[Quickstart guide](https://quarkdown.com/wiki/quickstart)** to bring your first document to life!
 
 &nbsp;
 
@@ -311,10 +327,6 @@ New user? You'll find **everything you need** in the **[Quickstart guide](https:
 
 **`quarkdown create [directory]`** will launch the prompt-based project wizard, making it quicker than ever
 to set up a new Quarkdown project, with all [metadata](https://quarkdown.com/wiki/document-metadata) and initial content already present.
-
-For more information about the project creator, check out its [wiki page](https://quarkdown.com/wiki/cli-project-creator).
-
-Alternatively, you may manually create a `.qd` source file and start from there.
 
 &nbsp;
 
@@ -381,6 +393,7 @@ A special thanks to all the sponsors who [supported this project](https://github
 
 <p align="center">
   <a href="https://github.com/vitto4"><img src="https://avatars.githubusercontent.com/u/128498605?v=4" alt="vitto4" width="60"></a>
+  <a href="https://github.com/aaditkamat"><img src="https://avatars.githubusercontent.com/u/30969577?v=4" alt="aaditkamat" width="60"></a>
 </p>
 
 <p align="center">

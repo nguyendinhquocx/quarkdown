@@ -41,7 +41,7 @@ import com.quarkdown.core.pipeline.Pipelines
 open class BaseContext(
     override val attributes: AstAttributes,
     override val flavor: MarkdownFlavor,
-    override val libraries: Set<Library> = emptySet(),
+    override val libraries: List<Library> = emptyList(),
     override val subdocument: Subdocument = Subdocument.Root,
 ) : Context {
     override val attachedPipeline: Pipeline?
@@ -82,9 +82,14 @@ open class BaseContext(
 
     override fun getFunctionByName(name: String): Function<*>? =
         libraries
+            .asReversed()
             .asSequence()
             .flatMap { it.functions }
             .find { it.name == name }
+
+    override fun isFunctionExtended(name: String): Boolean = false
+
+    override fun hasFunctionsExtended(): Boolean = false
 
     override fun resolve(call: FunctionCallNode): FunctionCall<*>? {
         val function = getFunctionByName(call.name)

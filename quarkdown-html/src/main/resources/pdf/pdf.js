@@ -24,8 +24,12 @@ function createArgs() {
     const browser = await puppeteer.launch({
         args: args,
         headless: 'shell',
+        // Timeout is managed externally by the CLI's --timeout flag.
+        protocolTimeout: 0,
     });
     const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
 
     console.log('Connecting to ' + url);
     await page.goto(url);
@@ -47,6 +51,7 @@ function createArgs() {
         path: outputFile,
         printBackground: true,
         preferCSSPageSize: true,
+        timeout: 0,
         ...(
             isSinglePage
                 ? {height: (await getClientHeight(body)) * singlePageHeightMultiplier + singlePageHeightPadding + 'px'}

@@ -14,7 +14,7 @@ open class SharedContext(
     override val fileSystem: FileSystem = parent.fileSystem,
 ) : MutableContext(
         flavor = parent.flavor,
-        libraries = emptySet(),
+        libraries = emptyList(),
         subdocument = parent.subdocument,
     ),
     ChildContext<MutableContext> {
@@ -29,4 +29,10 @@ open class SharedContext(
     override var sharedSubdocumentsData by parent::sharedSubdocumentsData
 
     override fun getFunctionByName(name: String): Function<*>? = parent.getFunctionByName(name)
+
+    override fun isFunctionExtended(name: String): Boolean = parent.isFunctionExtended(name)
+
+    override fun hasFunctionsExtended(): Boolean = parent.hasFunctionsExtended()
+
+    override fun markFunctionAsExtended(name: String) = parent.markFunctionAsExtended(name)
 }

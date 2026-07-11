@@ -6,6 +6,7 @@ import com.quarkdown.core.ast.AstRoot
 import com.quarkdown.core.ast.InlineContent
 import com.quarkdown.core.ast.Node
 import com.quarkdown.core.ast.attributes.reference.setDefinition
+import com.quarkdown.core.ast.attributes.style.NodeStyle
 import com.quarkdown.core.ast.base.block.BlockQuote
 import com.quarkdown.core.ast.base.block.Code
 import com.quarkdown.core.ast.base.block.FootnoteDefinition
@@ -464,7 +465,11 @@ class HtmlNodeRendererTest {
         )
         assertEquals(
             out.next(),
-            Code("class Point {\n    ...\n}", language = "java", caption = listOf(Text("A Java code example."))).render(),
+            Code(
+                "class Point {\n    ...\n}",
+                language = "java",
+                caption = listOf(Text("A Java code example.")),
+            ).render(),
         )
     }
 
@@ -524,6 +529,20 @@ class HtmlNodeRendererTest {
         assertEquals(out.next(), Heading(2, listOf(Text("Foo bar"))).render(autoPageBreak))
         assertEquals(out.next(), Heading(3, listOf(Text("Foo bar"))).render(autoPageBreak))
         assertEquals(out.next(), Heading(4, listOf(Text("Foo bar"))).render(autoPageBreak))
+
+        // Styling.
+        assertEquals(
+            out.next(),
+            Heading(
+                2,
+                listOf(Text("Foo bar")),
+                style =
+                    NodeStyle(
+                        foregroundColor = Color(255, 0, 0),
+                        textTransform = TextTransformData(variant = TextTransformData.Variant.SMALL_CAPS),
+                    ),
+            ).render(),
+        )
     }
 
     private fun listItems() =
@@ -806,8 +825,11 @@ class HtmlNodeRendererTest {
         assertEquals(
             out.next(),
             Container(
-                foregroundColor = Color(100, 20, 80),
-                backgroundColor = Color(10, 20, 30),
+                style =
+                    NodeStyle(
+                        foregroundColor = Color(100, 20, 80),
+                        backgroundColor = Color(10, 20, 30),
+                    ),
                 children = children,
             ).render(),
         )
@@ -815,9 +837,12 @@ class HtmlNodeRendererTest {
         assertEquals(
             out.next(),
             Container(
-                backgroundColor = Color(10, 20, 30),
-                padding = Sizes(vertical = 2.0.cm, horizontal = 3.0.cm),
-                cornerRadius = Sizes(all = 12.0.px),
+                style =
+                    NodeStyle(
+                        backgroundColor = Color(10, 20, 30),
+                        padding = Sizes(vertical = 2.0.cm, horizontal = 3.0.cm),
+                        cornerRadius = Sizes(all = 12.0.px),
+                    ),
                 children = children,
             ).render(),
         )
@@ -826,13 +851,16 @@ class HtmlNodeRendererTest {
             out.next(),
             Container(
                 fullWidth = true,
-                borderColor = Color(30, 20, 10),
-                borderWidth = Sizes(all = 1.0.cm),
-                margin = Sizes(all = 2.0.cm),
-                padding = Sizes(2.0.inch, 3.percent, 4.0.inch, 5.0.inch),
-                cornerRadius = Sizes(all = 6.0.px),
-                alignment = Container.Alignment.CENTER,
-                textAlignment = Container.TextAlignment.JUSTIFY,
+                style =
+                    NodeStyle(
+                        borderColor = Color(30, 20, 10),
+                        borderWidth = Sizes(all = 1.0.cm),
+                        margin = Sizes(all = 2.0.cm),
+                        padding = Sizes(2.0.inch, 3.percent, 4.0.inch, 5.0.inch),
+                        cornerRadius = Sizes(all = 6.0.px),
+                        alignment = NodeStyle.Alignment.CENTER,
+                        textAlignment = NodeStyle.TextAlignment.JUSTIFY,
+                    ),
                 children = children,
             ).render(),
         )
@@ -840,9 +868,12 @@ class HtmlNodeRendererTest {
         assertEquals(
             out.next(),
             Container(
-                borderColor = Color(30, 20, 10),
-                borderStyle = Container.BorderStyle.DOTTED,
-                alignment = Container.Alignment.END,
+                style =
+                    NodeStyle(
+                        borderColor = Color(30, 20, 10),
+                        borderStyle = NodeStyle.BorderStyle.DOTTED,
+                        alignment = NodeStyle.Alignment.END,
+                    ),
                 children = children,
             ).render(),
         )
@@ -859,14 +890,17 @@ class HtmlNodeRendererTest {
         assertEquals(
             out.next(),
             Container(
-                textTransform =
-                    TextTransformData(
-                        size = TextTransformData.Size.LARGE,
-                        style = TextTransformData.Style.ITALIC,
-                        decoration = TextTransformData.Decoration.STRIKETHROUGH,
-                        weight = TextTransformData.Weight.BOLD,
-                        case = TextTransformData.Case.UPPERCASE,
-                        variant = TextTransformData.Variant.SMALL_CAPS,
+                style =
+                    NodeStyle(
+                        textTransform =
+                            TextTransformData(
+                                size = TextTransformData.Size.LARGE,
+                                style = TextTransformData.Style.ITALIC,
+                                decoration = TextTransformData.Decoration.STRIKETHROUGH,
+                                weight = TextTransformData.Weight.BOLD,
+                                case = TextTransformData.Case.UPPERCASE,
+                                variant = TextTransformData.Variant.SMALL_CAPS,
+                            ),
                     ),
                 children = children,
             ).render(),
@@ -1061,7 +1095,7 @@ class HtmlNodeRendererTest {
                     style = TextTransformData.Style.ITALIC,
                     decoration = TextTransformData.Decoration.STRIKETHROUGH,
                 ),
-                children = buildInline { text("Foo") },
+                text = buildInline { text("Foo") },
             ).render(),
         )
 
@@ -1074,7 +1108,7 @@ class HtmlNodeRendererTest {
                     decoration = TextTransformData.Decoration.UNDEROVERLINE,
                     variant = TextTransformData.Variant.SMALL_CAPS,
                 ),
-                children =
+                text =
                     buildInline {
                         emphasis { text("Foo") }
                         text("bar")
@@ -1090,7 +1124,7 @@ class HtmlNodeRendererTest {
                     decoration = TextTransformData.Decoration.ALL,
                     color = Color(255, 0, 0),
                 ),
-                children = buildInline { text("Foo") },
+                text = buildInline { text("Foo") },
             ).render(),
         )
 
@@ -1098,7 +1132,7 @@ class HtmlNodeRendererTest {
             out.next(),
             TextTransform(
                 TextTransformData(),
-                children = buildInline { text("Foo") },
+                text = buildInline { text("Foo") },
             ).render(),
         )
 
@@ -1107,7 +1141,7 @@ class HtmlNodeRendererTest {
             TextTransform(
                 TextTransformData(size = TextTransformData.Size.LARGE),
                 className = "custom-class",
-                children = buildInline { text("Foo") },
+                text = buildInline { text("Foo") },
             ).render(),
         )
 
@@ -1116,7 +1150,7 @@ class HtmlNodeRendererTest {
             out.next(),
             TextTransform(
                 TextTransformData(script = TextTransformData.Script.SUB),
-                children = buildInline { text("2") },
+                text = buildInline { text("2") },
             ).render(),
         )
 
@@ -1128,7 +1162,7 @@ class HtmlNodeRendererTest {
                     script = TextTransformData.Script.SUP,
                     weight = TextTransformData.Weight.BOLD,
                 ),
-                children = buildInline { text("2") },
+                text = buildInline { text("2") },
             ).render(),
         )
     }
@@ -1136,7 +1170,10 @@ class HtmlNodeRendererTest {
     @Test
     fun icon() {
         assertEquals("<i class=\"icon-image bi bi-alarm\" aria-hidden=\"true\">\n</i>", IconImage("alarm").render())
-        assertEquals("<i class=\"icon-image bi bi-1-circle\" aria-hidden=\"true\">\n</i>", IconImage("1-circle").render())
+        assertEquals(
+            "<i class=\"icon-image bi bi-1-circle\" aria-hidden=\"true\">\n</i>",
+            IconImage("1-circle").render(),
+        )
     }
 
     @Test

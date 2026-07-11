@@ -17,6 +17,7 @@ import com.quarkdown.core.document.tex.TexInfo
 import com.quarkdown.core.flavor.quarkdown.QuarkdownFlavor
 import com.quarkdown.core.localization.LocaleLoader
 import com.quarkdown.core.media.ResolvableMedia
+import com.quarkdown.core.misc.color.NamedColor
 import com.quarkdown.core.misc.font.FontFamily
 import com.quarkdown.core.permissions.Permission
 import com.quarkdown.core.pipeline.PipelineOptions
@@ -83,6 +84,22 @@ class HtmlPostRendererTest {
     fun `wrap includes default title`() {
         val result = postRenderer().wrap("")
         assertTrue("<title>Quarkdown</title>" in result)
+    }
+
+    @Test
+    fun `wrap title is overridden by html options title`() {
+        context.documentInfo = DocumentInfo(name = "Doc title")
+        context.options.html = HtmlOptions(title = "Custom title")
+        val result = postRenderer().wrap("")
+        assertTrue("<title>Custom title</title>" in result)
+        assertFalse("<title>Doc title</title>" in result)
+    }
+
+    @Test
+    fun `wrap title override applies without document name`() {
+        context.options.html = HtmlOptions(title = "Only override")
+        val result = postRenderer().wrap("")
+        assertTrue("<title>Only override</title>" in result)
     }
 
     @Test
@@ -215,6 +232,19 @@ class HtmlPostRendererTest {
             )
         val result = postRenderer().wrap("")
         assertTrue("--qd-content-width: 8.5in" in result)
+    }
+
+    @Test
+    fun `wrap with page background`() {
+        context.documentInfo =
+            DocumentInfo(
+                layout =
+                    DocumentLayoutInfo(
+                        pageFormats = listOf(PageFormatInfo(backgroundColor = NamedColor.RED.color)),
+                    ),
+            )
+        val result = postRenderer().wrap("")
+        assertTrue("--qd-background-color: rgba(255, 0, 0, 1.0)" in result)
     }
 
     @Test

@@ -1,13 +1,12 @@
+@file:QModule
+
 package com.quarkdown.stdlib
 
 import com.quarkdown.core.context.Context
 import com.quarkdown.core.context.MutableContext
-import com.quarkdown.core.function.library.module.QuarkdownModule
-import com.quarkdown.core.function.library.module.moduleOf
+import com.quarkdown.core.function.reflect.annotation.Body
 import com.quarkdown.core.function.reflect.annotation.Injected
-import com.quarkdown.core.function.reflect.annotation.LikelyBody
 import com.quarkdown.core.function.reflect.annotation.LikelyNamed
-import com.quarkdown.core.function.reflect.annotation.Name
 import com.quarkdown.core.function.value.DictionaryValue
 import com.quarkdown.core.function.value.OutputValue
 import com.quarkdown.core.function.value.StringValue
@@ -17,16 +16,9 @@ import com.quarkdown.core.localization.Locale
 import com.quarkdown.core.localization.LocaleLoader
 import com.quarkdown.core.localization.LocalizationEntries
 import com.quarkdown.core.localization.LocalizationTable
-
-/**
- * `Localization` stdlib module exporter.
- * This module handles localization-related features.
- */
-val Localization: QuarkdownModule =
-    moduleOf(
-        ::localization,
-        ::localize,
-    )
+import com.quarkdown.processor.annotation.Name
+import com.quarkdown.processor.annotation.QFunction
+import com.quarkdown.processor.annotation.QModule
 
 /**
  * Builds a localization table from the given dictionary of locales and their key-value entries.
@@ -34,7 +26,7 @@ val Localization: QuarkdownModule =
 private fun buildLocalizationTable(contents: Map<String, DictionaryValue<OutputValue<String>>>): LocalizationTable =
     contents
         .asSequence()
-        .map { (key, value) ->
+        .associate { (key, value) ->
             // The locale name is the first element of each list item:
             // English <-- this is the locale name
             //   - key1: value1
@@ -47,7 +39,7 @@ private fun buildLocalizationTable(contents: Map<String, DictionaryValue<OutputV
                 value.unwrappedValue.mapValues { (_, value) -> value.unwrappedValue }
 
             locale to entries
-        }.toMap()
+        }
 
 /**
  * Merges two localization tables, giving priority to the new one.
@@ -108,11 +100,12 @@ private fun mergeLocalizationTables(
  * or if the table name is already defined and [merge] is false
  * @wiki localization
  */
+@QFunction
 fun localization(
     @Injected context: MutableContext,
     @Name("name") tableName: String,
     @LikelyNamed merge: Boolean = false,
-    @LikelyBody contents: Map<String, DictionaryValue<OutputValue<String>>>,
+    @Body contents: Map<String, DictionaryValue<OutputValue<String>>>,
 ): VoidValue {
     val tableExists = tableName in context.localizationTables
 
@@ -151,6 +144,7 @@ fun localization(
  * @see localization
  * @wiki localization
  */
+@QFunction
 fun localize(
     @Injected context: Context,
     key: String,

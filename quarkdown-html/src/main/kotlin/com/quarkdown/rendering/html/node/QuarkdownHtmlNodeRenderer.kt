@@ -78,8 +78,8 @@ import com.quarkdown.core.util.kebabCaseName
 import com.quarkdown.rendering.html.HtmlIdentifierProvider
 import com.quarkdown.rendering.html.HtmlIdentifierProvider.Companion.sanitizeId
 import com.quarkdown.rendering.html.HtmlTagBuilder
-import com.quarkdown.rendering.html.css.CssBuilder
 import com.quarkdown.rendering.html.css.asCSS
+import com.quarkdown.rendering.html.css.textTransform
 
 /**
  * A renderer for Quarkdown ([com.quarkdown.core.flavor.quarkdown.QuarkdownFlavor]) nodes that exports their content into valid HTML code.
@@ -204,39 +204,15 @@ class QuarkdownHtmlNodeRenderer(
                 "fullwidth".takeIf { node.fullWidth },
                 "float".takeIf { node.float != null },
                 "full-column-span".takeIf { node.fullColumnSpan },
-                node.textTransform?.size?.asCSS,
                 node.className,
             )
 
             +node.children
 
-            style {
+            style(node.style) {
                 "width" value node.width
                 "height" value node.height
-                "color" value node.foregroundColor
-                "background-color" value node.backgroundColor
-                "margin" value node.margin
-                "padding" value node.padding
-                "border-color" value node.borderColor
-                "border-width" value node.borderWidth
-                "border-radius" value node.cornerRadius
-
-                "border-style" value
-                    when {
-                        // If the border style is set, it is used.
-                        node.borderStyle != null -> node.borderStyle
-
-                        // If border properties are set, a normal (solid) border is used.
-                        node.borderColor != null || node.borderWidth != null -> Container.BorderStyle.NORMAL
-
-                        // No border style.
-                        else -> null
-                    }
-
-                "justify-items" value node.alignment
-                "text-align" value node.textAlignment
                 "float" value node.float
-                node.textTransform?.let { textTransform(it) }
             }
         }
 
@@ -351,7 +327,7 @@ class QuarkdownHtmlNodeRenderer(
                 this@QuarkdownHtmlNodeRenderer,
                 tableOfContents.items,
                 linkUrlMapper = { item ->
-                    "#" + HtmlIdentifierProvider.of(this@QuarkdownHtmlNodeRenderer).getId(item.target)
+                    "#" + HtmlIdentifierProvider.of(this@QuarkdownHtmlNodeRenderer, context).getId(item.target)
                 },
             )
 
@@ -445,7 +421,7 @@ class QuarkdownHtmlNodeRenderer(
         // The target node could have an ID. If so, the reference is a link to that node.
         // Headings use Identifiable for auto-generated IDs; other nodes use their referenceId directly.
         val anchorId =
-            (definition as? Identifiable)?.accept(HtmlIdentifierProvider.of(this))
+            (definition as? Identifiable)?.accept(HtmlIdentifierProvider.of(this, context))
                 ?: definition.linkableReferenceId?.let(::sanitizeId)
 
         val reference =
@@ -510,18 +486,6 @@ class QuarkdownHtmlNodeRenderer(
             +node.children
         }
 
-    /**
-     * Applies the text transformation of [data] into [this] CSS builder.
-     */
-    private fun CssBuilder.textTransform(data: TextTransformData) {
-        "font-weight" value data.weight
-        "font-style" value data.style
-        "font-variant" value data.variant
-        "text-decoration" value data.decoration
-        "text-transform" value data.case
-        "color" value data.color
-    }
-
     override fun visit(node: TextTransform): CharSequence {
         val tagName =
             when (node.data.script) {
@@ -531,10 +495,7 @@ class QuarkdownHtmlNodeRenderer(
             }
 
         return buildTag(tagName) {
-            classNames(
-                node.data.size?.asCSS, // e.g. 'size-small' class
-                node.className,
-            )
+            className(node.className)
             +node.children
             style { textTransform(node.data) }
         }
@@ -671,11 +632,12 @@ class QuarkdownHtmlNodeRenderer(
                 "id",
                 // Generate an automatic identifier if allowed by settings.
                 HtmlIdentifierProvider
-                    .of(renderer = this)
+                    .of(renderer = this, context = context)
                     .takeIf { context.options.enableAutomaticIdentifiers || node.customId != null }
                     ?.getId(node),
             ).optionalAttribute("data-decorative", "".takeIf { node.isDecorative })
             .withLocationLabel(node)
+            .style(node.style)
             .build()
     }
 
@@ -688,7 +650,7 @@ class QuarkdownHtmlNodeRenderer(
             node.type?.asCSS?.let { type ->
                 className(type)
                 // The type is associated to a localized label
-                // only if the documant language is set and the set language is supported.
+                // only if the document language is set and the set language is supported.
                 context.localizeOrNull(key = type)?.let { localizedLabel ->
                     // The localized label is set as a CSS variable.
                     // Themes can customize label appearance and formatting.
@@ -774,7 +736,7 @@ class QuarkdownHtmlNodeRenderer(
         {
             attribute(
                 "data-target-id",
-                HtmlIdentifierProvider.of(this@QuarkdownHtmlNodeRenderer).getId(variant.item.target),
+                HtmlIdentifierProvider.of(this@QuarkdownHtmlNodeRenderer, context).getId(variant.item.target),
             )
             attribute("data-depth", variant.item.depth.toString())
         }

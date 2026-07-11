@@ -1,16 +1,15 @@
+@file:QModule
+
 package com.quarkdown.stdlib
 
 import com.quarkdown.core.ast.base.block.BlankNode
 import com.quarkdown.core.context.MutableContext
 import com.quarkdown.core.context.ScopeContext
-import com.quarkdown.core.function.FunctionParameter
-import com.quarkdown.core.function.SimpleFunction
 import com.quarkdown.core.function.library.Library
-import com.quarkdown.core.function.library.module.QuarkdownModule
-import com.quarkdown.core.function.library.module.moduleOf
+import com.quarkdown.core.function.reflect.annotation.Body
 import com.quarkdown.core.function.reflect.annotation.Injected
 import com.quarkdown.core.function.reflect.annotation.LikelyBody
-import com.quarkdown.core.function.reflect.annotation.Name
+import com.quarkdown.core.function.signatureAsString
 import com.quarkdown.core.function.value.DynamicValue
 import com.quarkdown.core.function.value.GeneralCollectionValue
 import com.quarkdown.core.function.value.IterableValue
@@ -24,22 +23,12 @@ import com.quarkdown.core.function.value.data.LambdaParameter
 import com.quarkdown.core.function.value.data.Range
 import com.quarkdown.core.function.value.factory.ValueFactory
 import com.quarkdown.core.function.value.wrappedAsValue
-
-/**
- * `Flow` stdlib module exporter.
- * This module handles the control flow and other statements.
- */
-val Flow: QuarkdownModule =
-    moduleOf(
-        ::`if`,
-        ::ifNot,
-        ::forEach,
-        ::repeat,
-        ::function,
-        ::variable,
-        ::let,
-        ::node,
-    )
+import com.quarkdown.processor.annotation.Name
+import com.quarkdown.processor.annotation.QFunction
+import com.quarkdown.processor.annotation.QModule
+import com.quarkdown.stdlib.internal.CUSTOM_FUNCTION_LIBRARY_NAME_PREFIX
+import com.quarkdown.stdlib.internal.declareFunctionFromLambda
+import com.quarkdown.stdlib.internal.extendFunction
 
 /**
  * Performs a conditional evaluation of content, including the evaluation of body only if the condition is met.
@@ -88,6 +77,7 @@ val Flow: QuarkdownModule =
  * @return the evaluation of [body] if [condition] is `true`, nothing otherwise
  * @wiki conditional-statements
  */
+@QFunction
 @Name("if")
 @Suppress("ktlint:standard:function-naming")
 fun `if`(
@@ -107,6 +97,7 @@ fun `if`(
  * @return [body] if [condition] is false, nothing otherwise
  * @wiki conditional-statements
  */
+@QFunction
 @Name("ifnot")
 fun ifNot(
     condition: Boolean?,
@@ -181,6 +172,7 @@ fun ifNot(
  * @return a collection that contains the output of each iteration
  * @wiki loops
  */
+@QFunction
 @Name("foreach")
 fun forEach(
     iterable: Iterable<Value<*>>,
@@ -216,16 +208,11 @@ fun forEach(
  * @return a collection that contains the output of each iteration
  * @wiki loops
  */
+@QFunction
 fun repeat(
     times: Int,
     @LikelyBody body: Lambda,
 ): IterableValue<OutputValue<*>> = forEach(Range(1, times), body)
-
-/**
- * Custom functions (via [function]) and variables (via [variable]) are saved in a [Library]
- * whose name begins by this string.
- */
-private const val CUSTOM_FUNCTION_LIBRARY_NAME_PREFIX = "__func__"
 
 /**
  * Defines a custom function that can be called later in the document.
@@ -288,35 +275,94 @@ private const val CUSTOM_FUNCTION_LIBRARY_NAME_PREFIX = "__func__"
  *
  * @param name name of the function
  * @param body content of the function. Function parameters must be **explicit** lambda parameters
+ * @throws IllegalStateException if a function with the same name already exists and function overwriting is forbidden by the current options
  * @wiki declaring-functions
  */
+@QFunction
 fun function(
     @Injected context: MutableContext,
     name: String,
-    @LikelyBody body: Lambda,
+    @Body body: Lambda,
 ): VoidValue {
-    // Function parameters.
-    val parameters =
-        body.explicitParameters.mapIndexed { index, parameter ->
-            FunctionParameter(parameter.name, type = DynamicValue::class, index, parameter.isOptional)
+    if (context.attachedPipeline?.options?.forbidFunctionOverwriting == true) {
+        val existingFunction = context.getFunctionByName(name)
+        if (existingFunction != null) {
+            throw IllegalStateException(
+                "Function ${existingFunction.signatureAsString()} already exists and function overwriting is turned off.",
+            )
         }
+    }
 
-    // The custom function itself.
-    val function =
-        SimpleFunction(name, parameters) { bindings, call ->
-            // Retrieving arguments from the function call.
-            // `None` is used as a default value if the argument for an optional parameter is not provided.
-            val args: List<Value<*>> = parameters.map { bindings[it]?.value ?: NoneValue }
+    declareFunctionFromLambda(context, name, body.explicitParameters) { call, args, _ ->
+        // The final result is evaluated and returned as a dynamic, hence it can be used as any type.
+        // The calling context is propagated so that dynamic value references within the lambda body
+        // can resolve variables from the calling scope.
+        body.invokeDynamic(args, callingContext = call.context)
+    }
 
-            // The final result is evaluated and returned as a dynamic, hence it can be used as any type.
-            // The calling context is propagated so that dynamic value references within the lambda body
-            // can resolve variables from the calling scope.
-            body.invokeDynamic(args, callingContext = call.context)
-        }
+    return VoidValue
+}
 
-    // The function is registered and ready to be called.
-    context.libraries += Library(CUSTOM_FUNCTION_LIBRARY_NAME_PREFIX + name, setOf(function))
-
+/**
+ * Defines a custom function that extends an existing one by name, wrapping its output.
+ *
+ * Within the body, the original function is exposed as `.super`: calling it invokes the original
+ * with the arguments the wrapper was called with. The body's explicit parameters, if any, must match
+ * the original function's parameters by name and let the wrapper read those same arguments.
+ * All wrapper parameters are optional, regardless of whether the original parameters are.
+ *
+ * ```
+ * .function {greet}
+ *     name:
+ *     Hello, .name
+ *
+ * .extend {greet}
+ *     .super::uppercase
+ *
+ * .greet {World}
+ * ```
+ *
+ * > Output: `HELLO, WORLD`
+ *
+ * The wrapper can reference the original parameters by name to alter the behavior conditionally:
+ *
+ * ```
+ * .extend {greet}
+ *     name:
+ *     .if {.name::equals {World}}
+ *         .super::uppercase
+ *     .ifnot {.name::equals {World}}
+ *         .super
+ * ```
+ *
+ * Because `.super` is the original function itself, it accepts the same arguments. Anything you pass
+ * overrides the corresponding argument the wrapper was called with, while anything you leave out
+ * falls through unchanged:
+ *
+ * ```
+ * .extend {greet}
+ *     name:
+ *     .super name:{.name::uppercase}
+ *
+ * .greet {John}
+ * ```
+ *
+ * > Output: `Hello, JOHN`
+ *
+ * @param name name of the existing function to extend
+ * @param body wrapper content. Its explicit parameters, if any, must match the original function's
+ *             parameter names. `.super` is implicitly available within the body
+ * @throws IllegalArgumentException if no function named [name] exists, or if any explicit parameter
+ *         does not match an original parameter
+ * @wiki extending-functions
+ */
+@QFunction
+fun extend(
+    @Injected context: MutableContext,
+    name: String,
+    @Body body: Lambda,
+): VoidValue {
+    extendFunction(context, name, body)
     return VoidValue
 }
 
@@ -349,6 +395,7 @@ fun function(
  * @param value value to assign
  * @wiki variables
  */
+@QFunction
 @Name("var")
 fun variable(
     @Injected context: MutableContext,
@@ -357,9 +404,9 @@ fun variable(
 ): VoidValue {
     val libraryName = CUSTOM_FUNCTION_LIBRARY_NAME_PREFIX + name
 
-    fun containsVariable(libraries: Set<Library>) = libraries.any { it.name == libraryName }
+    fun containsVariable(libraries: Iterable<Library>) = libraries.any { it.name == libraryName }
 
-    fun removeVariable(libraries: MutableSet<Library>) {
+    fun removeVariable(libraries: MutableList<Library>) {
         libraries.removeIf { it.name == libraryName }
     }
 
@@ -433,9 +480,10 @@ fun variable(
  * @return the evaluation of [body] with [value] as a parameter
  * @wiki let
  */
+@QFunction
 fun let(
     value: DynamicValue,
-    @LikelyBody body: Lambda,
+    @Body body: Lambda,
 ): OutputValue<*> = body.invokeDynamic(value)
 
 /**
@@ -446,4 +494,5 @@ fun let(
  *
  * @return an invisible node
  */
+@QFunction
 fun node(): NodeValue = BlankNode.wrappedAsValue()

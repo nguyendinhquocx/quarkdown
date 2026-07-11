@@ -1,3 +1,5 @@
+@file:QModule
+
 package com.quarkdown.stdlib
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
@@ -9,11 +11,8 @@ import com.quarkdown.core.context.Context
 import com.quarkdown.core.context.file.FileSystem
 import com.quarkdown.core.context.file.RootGranularity
 import com.quarkdown.core.context.file.getRootFileSystem
-import com.quarkdown.core.function.library.module.QuarkdownModule
-import com.quarkdown.core.function.library.module.moduleOf
 import com.quarkdown.core.function.reflect.annotation.Injected
 import com.quarkdown.core.function.reflect.annotation.LikelyNamed
-import com.quarkdown.core.function.reflect.annotation.Name
 import com.quarkdown.core.function.value.IterableValue
 import com.quarkdown.core.function.value.NodeValue
 import com.quarkdown.core.function.value.OrderedCollectionValue
@@ -26,6 +25,9 @@ import com.quarkdown.core.function.value.wrappedAsValue
 import com.quarkdown.core.permissions.Permission
 import com.quarkdown.core.permissions.requireReadPermission
 import com.quarkdown.core.util.normalizeLineSeparators
+import com.quarkdown.processor.annotation.Name
+import com.quarkdown.processor.annotation.QFunction
+import com.quarkdown.processor.annotation.QModule
 import com.quarkdown.stdlib.internal.AlphanumericComparator
 import com.quarkdown.stdlib.internal.Ordering
 import com.quarkdown.stdlib.internal.Sorting
@@ -33,34 +35,21 @@ import com.quarkdown.stdlib.internal.sortedBy
 import java.io.File
 
 /**
- * `Data` stdlib module exporter.
- * This module handles content fetched from external resources.
- */
-val Data: QuarkdownModule =
-    moduleOf(
-        ::read,
-        ::pathToRoot,
-        ::listFiles,
-        ::fileName,
-        ::csv,
-    )
-
-/**
  * @param path path of the file, relative or absolute (with extension)
- * @param requireExistance whether the corresponding file must exist
+ * @param requireExistence whether the corresponding file must exist
  * @return a [File] instance of the file located in [path].
  *         If the path is relative, the location is determined by the working directory of the pipeline.
- * @throws IllegalArgumentException if the file does not exist and [requireExistance] is `true`
+ * @throws IllegalArgumentException if the file does not exist and [requireExistence] is `true`
  */
 internal fun file(
     context: Context,
     path: String,
-    requireExistance: Boolean = true,
+    requireExistence: Boolean = true,
 ): File {
     val file = context.fileSystem.resolve(path)
     context.requireReadPermission(file)
 
-    if (requireExistance && !file.exists()) {
+    if (requireExistence && !file.exists()) {
         throw IllegalArgumentException("File $file does not exist.")
     }
 
@@ -77,6 +66,7 @@ internal fun file(
  * @throws IllegalArgumentException if [lineRange] is out of bounds
  * @wiki file-data
  */
+@QFunction
 fun read(
     @Injected context: Context,
     path: String,
@@ -146,6 +136,7 @@ fun read(
  * @return a string value of the relative path to the root of the file system
  * @throws IllegalStateException if the relative path cannot be determined
  */
+@QFunction
 @Name("pathtoroot")
 fun pathToRoot(
     @Injected context: Context,
@@ -192,51 +183,69 @@ enum class FileSorting(
 
 /**
  * Lists the files located in a directory.
- * @param path path of the directory to list files from
+ * @param path directory path
  * @param listDirectories whether to include directories in the listing
+ * @param recursive whether to recursively list files in nested subdirectories
+ * @param pattern optional regular expression to filter entries by name.
+ *                When non-`null`, only entries whose file name (always the bare name, regardless of [fullPath]) matches the pattern are returned.
  * @param fullPath whether to return the absolute path of each file, rather than just the file name
  * @param sortBy criterion to sort the files by
  * @param order order to sort the files in
- * @return an unordered collection of string values, each representing a file located in the directory, with extension
- * @throws IllegalArgumentException if the directory does not exist or if the path is not a directory
+ * @return a collection of string values, each representing an entry (file or directory) located in the directory.
+ *         The collection is unordered when [sortBy] is [FileSorting.NONE], and ordered otherwise.
+ * @throws IllegalArgumentException if the directory does not exist, is not a directory,
+ *                                  or if [pattern] is not a valid regular expression
  * @permission [Permission.ProjectRead] to list files located in the project directory
  * @permission [Permission.GlobalRead] to list files located outside the project directory
  * @see fileName to exclude the extension from file names
- * @wiki file-data
+ * @wiki listing-files
  */
+@QFunction
 @Name("listfiles")
 fun listFiles(
     @Injected context: Context,
     path: String,
     @Name("directories") listDirectories: Boolean = true,
+    @LikelyNamed recursive: Boolean = false,
+    @LikelyNamed pattern: String? = null,
     @Name("fullpath") fullPath: Boolean = true,
     @Name("sortby") sortBy: FileSorting = FileSorting.NONE,
     @LikelyNamed order: Ordering = Ordering.ASCENDING,
 ): IterableValue<StringValue> {
-    val directory = file(context, path)
+    val rootDirectory = file(context, path)
 
-    if (!directory.exists()) {
-        throw IllegalArgumentException("Directory $directory does not exist.")
+    if (!rootDirectory.exists()) {
+        throw IllegalArgumentException("Directory $rootDirectory does not exist.")
     }
-    if (!directory.isDirectory) {
-        throw IllegalArgumentException("Path $directory is not a directory.")
+    if (!rootDirectory.isDirectory) {
+        throw IllegalArgumentException("Path $rootDirectory is not a directory.")
     }
+
+    val nameRegex = pattern?.toRegex()
 
     val files =
-        directory
-            .listFiles()
-            ?.asSequence()
-            ?.filter { listDirectories || it.isFile }
-            ?.let { sortBy.sort(it, order) }
-            ?.map { if (fullPath) it.absolutePath else it.name }
-            ?.map(::StringValue)
-            ?: emptySequence()
+        listFiles(rootDirectory, recursive)
+            .filter { listDirectories || it.isFile }
+            .filter { currentFile -> nameRegex == null || nameRegex.matches(currentFile.name) }
+            .let { sortBy.sort(it, order) }
+            .map { if (fullPath) it.absolutePath else it.name }
+            .map(::StringValue)
 
     return when {
         sortBy == FileSorting.NONE -> UnorderedCollectionValue(files.toSet())
         else -> OrderedCollectionValue(files.toList())
     }
 }
+
+private fun listFiles(
+    directory: File,
+    recursive: Boolean,
+): Sequence<File> =
+    if (recursive) {
+        directory.walkTopDown().drop(1)
+    } else {
+        directory.listFiles()?.asSequence() ?: emptySequence()
+    }
 
 /**
  * Retrieves the name of a file located in [path].
@@ -248,6 +257,7 @@ fun listFiles(
  * @permission [Permission.GlobalRead] to access files located outside the project directory
  * @wiki file-data
  */
+@QFunction
 @Name("filename")
 fun fileName(
     @Injected context: Context,
@@ -284,6 +294,7 @@ enum class CsvParsingMode(
  * @permission [Permission.GlobalRead] to read CSV files located outside the project directory
  * @wiki file-data
  */
+@QFunction
 fun csv(
     @Injected context: Context,
     path: String,

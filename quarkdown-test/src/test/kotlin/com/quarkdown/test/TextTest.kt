@@ -74,7 +74,7 @@ class TextTest {
                 "<blockquote><p>" +
                     "This is a <strong>&ldquo;quote&rdquo;</strong> with &lsquo;text <em>replacement</em>&rsquo;.<br />" +
                     "This is a feature of Quarkdown&mdash;the Turing complete Markdown&mdash;by iamgio &copy; 2024 " +
-                    "&ndash; all rights reserved.\n" +
+                    "&ndash; all rights reserved. " +
                     "&rArr; Quarkdown &ne; other Markdown flavors&hellip; &larr;" +
                     "</p></blockquote>",
                 it,
@@ -106,7 +106,22 @@ class TextTest {
     fun `advanced text formatting`() {
         execute("This is a .text {small text} size:{tiny} variant:{smallcaps}") {
             assertEquals(
-                "<p>This is a <span class=\"size-tiny\" style=\"font-variant: small-caps;\">small text</span></p>",
+                "<p>This is a <span style=\"font-size: var(--qd-size-tiny, 1em); font-variant: small-caps;\">small text</span></p>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `text with body argument`() {
+        execute(
+            """
+            .text size:{tiny} variant:{smallcaps}
+                small text
+            """.trimIndent(),
+        ) {
+            assertEquals(
+                "<span style=\"font-size: var(--qd-size-tiny, 1em); font-variant: small-caps;\">small text</span>",
                 it,
             )
         }

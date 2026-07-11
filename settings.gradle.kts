@@ -12,12 +12,14 @@ plugins {
 rootProject.name = "quarkdown"
 
 include("quarkdown-core")
+include("quarkdown-native-library-processor")
 include("quarkdown-html")
 include("quarkdown-plaintext")
 include("quarkdown-cli")
 include("quarkdown-stdlib")
 include("quarkdown-test")
 include("quarkdown-libs")
+include("quarkdown-template")
 include("quarkdown-server")
 include("quarkdown-interaction")
 include("quarkdown-quarkdoc")

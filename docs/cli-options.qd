@@ -52,7 +52,7 @@ Running **`quarkdown c file.qd`** compiles the given file and saves the output t
 ### Permissions
 
 - `--allow <permission>` / `--deny <permission>`: grants or revokes a [permission](cli-compiler.qd#permissions) (repeatable).
-  Accepted values: `project-read`, `global-read`, `network`, `native-content`, `all`.
+  Accepted values: `project-read`, `global-read`, `network`, `native-content`, `process`, `all`.
   By default, `project-read` and `native-content` are granted.
 
 ### Libraries
@@ -75,7 +75,12 @@ Running **`quarkdown c file.qd`** compiles the given file and saves the output t
 - `--pretty`: produces pretty output code. This is useful for debugging or to read the output code more easily,
   but it should be disabled in production as the results might be visually affected.
 
+- `--timeout <seconds>`: sets the maximum time, in seconds, allowed for the entire execution to complete.
+  `0` disables the timeout. Defaults to 30 seconds.
+
 - `--no-media-storage`: turns the [media storage](media-storage.qd) system off.
+
+- `--forbid-function-overwriting`: raises a compilation error when a [function is declared](declaring-functions.qd#overwriting-functions) with a name that is already in use, instead of silently overwriting the previous definition.
 
 - `--subdoc-naming <strategy>`: sets the [subdocument](subdocuments.qd) output naming strategy. Defaults to `file-name`. Accepted values:
   - `file-name`: uses the subdocument's file name (human-readable, but prone to collisions)

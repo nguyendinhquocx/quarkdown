@@ -21,6 +21,6 @@ abstract class Token(
 /**
  * Lazily accepts a sequence of tokens to a shared visitor.
  * @param visitor the visitor to visit for each token.
- * @return the list of results from each visit
+ * @return a lazy sequence of results from each visit
  */
-fun <T> Sequence<Token>.acceptAll(visitor: TokenVisitor<T>): List<T> = this.map { it.accept(visitor) }.toList()
+fun <T> Sequence<Token>.acceptAll(visitor: TokenVisitor<T>): Sequence<T> = this.map { it.accept(visitor) }

@@ -27,7 +27,10 @@ class HeadingTest {
         }
 
         execute("###### .text {Hello, **world**} size:{tiny}") {
-            assertEquals("<h6><span class=\"size-tiny\">Hello, <strong>world</strong></span></h6>", it)
+            assertEquals(
+                "<h6><span style=\"font-size: var(--qd-size-tiny, 1em);\">Hello, <strong>world</strong></span></h6>",
+                it,
+            )
         }
     }
 
@@ -119,6 +122,135 @@ class HeadingTest {
     fun `heading primitive no page break`() {
         execute(".heading {Hello} depth:{1} breakpage:{no}") {
             assertEquals("<h1>Hello</h1>", it)
+        }
+    }
+
+    @Test
+    fun `heading primitive with styling`() {
+        execute(".heading {Hello} depth:{2} foreground:{red} background:{blue} fontsize:{small}") {
+            assertEquals(
+                "<h2 style=\"color: rgba(255, 0, 0, 1.0); " +
+                    "background-color: rgba(0, 0, 255, 1.0); " +
+                    "font-size: var(--qd-size-small, 1em);\">Hello</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `duplicate auto identifiers are disambiguated`() {
+        execute(
+            """
+            ## Examples
+
+            ## Examples
+
+            ## Examples
+            """.trimIndent(),
+            options = DEFAULT_OPTIONS.copy(enableAutomaticIdentifiers = true),
+        ) {
+            assertEquals(
+                "<h2 id=\"examples\">Examples</h2>" +
+                    "<h2 id=\"examples-2\">Examples</h2>" +
+                    "<h2 id=\"examples-3\">Examples</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `duplicate custom identifiers are disambiguated`() {
+        execute(
+            """
+            .noautopagebreak
+
+            ## A {#shared}
+
+            ## B {#shared}
+            """.trimIndent(),
+            options = DEFAULT_OPTIONS.copy(enableAutomaticIdentifiers = true),
+        ) {
+            assertEquals(
+                "<h2 id=\"shared\">A</h2>" +
+                    "<h2 id=\"shared-2\">B</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `auto identifier collides with custom identifier`() {
+        // A custom id is just another base id: it still participates in deduplication
+        // when an auto-generated id from another heading would produce the same string.
+        execute(
+            """
+            .noautopagebreak
+
+            ## A {#examples}
+
+            ## Examples
+            """.trimIndent(),
+            options = DEFAULT_OPTIONS.copy(enableAutomaticIdentifiers = true),
+        ) {
+            assertEquals(
+                "<h2 id=\"examples\">A</h2>" +
+                    "<h2 id=\"examples-2\">Examples</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `custom identifiers that only collide after sanitization are disambiguated`() {
+        // The deduplication key is the sanitized identifier, so customIds whose only difference
+        // is stripped by sanitization (whitespace here) are recognised as a collision.
+        execute(
+            """
+            .noautopagebreak
+
+            ## A {#a b}
+
+            ## B {#ab}
+            """.trimIndent(),
+            options = DEFAULT_OPTIONS.copy(enableAutomaticIdentifiers = true),
+        ) {
+            assertEquals(
+                "<h2 id=\"ab\">A</h2>" +
+                    "<h2 id=\"ab-2\">B</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `digit-leading identifiers that collide after sanitization are disambiguated`() {
+        execute(
+            """
+            .noautopagebreak
+
+            ## A {#123}
+
+            ## B {#_123}
+            """.trimIndent(),
+            options = DEFAULT_OPTIONS.copy(enableAutomaticIdentifiers = true),
+        ) {
+            assertEquals(
+                "<h2 id=\"_123\">A</h2>" +
+                    "<h2 id=\"_123-2\">B</h2>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `heading primitive with body argument`() {
+        execute(
+            """
+            .heading depth:{3}
+                Hello
+            """.trimIndent(),
+        ) {
+            assertEquals("<h3>Hello</h3>", it)
         }
     }
 

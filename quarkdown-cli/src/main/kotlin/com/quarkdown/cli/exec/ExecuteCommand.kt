@@ -1,6 +1,8 @@
 package com.quarkdown.cli.exec
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
@@ -11,7 +13,10 @@ import com.github.ajalt.clikt.parameters.types.int
 import com.quarkdown.cli.CliOptions
 import com.quarkdown.cli.exec.strategy.PipelineExecutionStrategy
 import com.quarkdown.cli.server.DEFAULT_SERVER_PORT
+import com.quarkdown.cli.util.checkCleanSafety
+import com.quarkdown.cli.util.runWithTimeout
 import com.quarkdown.cli.watcher.DirectoryWatcher
+import com.quarkdown.core.TIMEOUT_EXIT_CODE
 import com.quarkdown.core.document.sub.SubdocumentOutputNaming
 import com.quarkdown.core.log.Log
 import com.quarkdown.core.media.storage.options.ReadOnlyMediaStorageOptions
@@ -110,7 +115,7 @@ abstract class ExecuteCommand(
     /**
      * When enabled, the rendered code isn't wrapped in a template code.
      * For example, an HTML wrapper may add `<html><head>...</head><body>...</body></html>`, with the content injected in `body`.
-     * @see com.quarkdown.core.template.TemplateProcessor
+     * @see com.quarkdown.template.TemplateProcessor
      */
     private val noWrap: Boolean by option("--nowrap", help = "Don't wrap output").flag()
 
@@ -146,6 +151,14 @@ abstract class ExecuteCommand(
      * and nodes that reference those media objects are not updated to reflect the new local path.
      */
     private val noMediaStorage: Boolean by option("--no-media-storage", help = "Disables media storage").flag()
+
+    /**
+     * When enabled, defining a function with an existing name raises an error, rather than overwriting the previous function definition.
+     */
+    private val forbidFunctionOverwriting: Boolean by option(
+        "--forbid-function-overwriting",
+        help = "Raise error on clashing function names",
+    ).flag()
 
     /**
      * The strategy used to determine subdocument output file names.
@@ -185,6 +198,12 @@ abstract class ExecuteCommand(
      */
     private val npmPath: String by option("--npm-path", help = "Path to the npm executable")
         .default(NpmWrapper.defaultPath)
+
+    /**
+     * Maximum time, in seconds, allowed for the entire execution (pipeline + export) to complete.
+     * `null` or non-positive disables the timeout. Subclasses may override to provide a value.
+     */
+    protected open val timeoutSeconds: Int? = null
 
     /**
      * @return the finalized CLI options based on the command's properties
@@ -238,6 +257,7 @@ abstract class ExecuteCommand(
             wrapOutput = !noWrap,
             workingDirectory = cliOptions.source?.absoluteFile?.parentFile,
             enableMediaStorage = !noMediaStorage,
+            forbidFunctionOverwriting = forbidFunctionOverwriting,
             subdocumentNaming = subdocumentNaming,
             isPreview = preview,
             serverPort = serverPort.takeIf { preview },
@@ -256,6 +276,18 @@ abstract class ExecuteCommand(
     override fun run() {
         val cliOptions = this.createCliOptions()
         val pipelineOptions = this.createPipelineOptions(cliOptions)
+
+        // Prevents `--clean` from deleting sensitive directories.
+        if (cliOptions.clean) {
+            cliOptions.outputDirectory?.let { dir ->
+                dir.checkCleanSafety(cliOptions.source)?.let { refusal ->
+                    throw CliktError(
+                        "Refusing to clean output directory '${dir.absolutePath}': ${refusal.message}. " +
+                            "Please pick a different --out directory or omit --clean.",
+                    )
+                }
+            }
+        }
 
         // If pipe mode is enabled, all logging is disabled, so that only the rendered content is printed to stdout.
         if (cliOptions.pipe) {
@@ -280,15 +312,26 @@ abstract class ExecuteCommand(
     /**
      * Executes the Quarkdown pipeline: compiles and generates output files.
      * [preExecute] and [postExecute] are called before and after the execution respectively.
+     * If [timeoutSeconds] is set, the execution is bounded by the specified duration.
      */
     private fun execute(
         cliOptions: CliOptions,
         pipelineOptions: PipelineOptions,
     ) {
+        val strategy = createExecutionStrategy(cliOptions)
+
         this.preExecute(cliOptions, pipelineOptions)
 
-        // Executes the Quarkdown pipeline.
-        val outcome: ExecutionOutcome = runQuarkdown(createExecutionStrategy(cliOptions), cliOptions, pipelineOptions)
+        val outcome: ExecutionOutcome =
+            runWithTimeout(
+                timeoutSeconds,
+                onTimeout = { e ->
+                    Log.error("Execution timed out (--timeout ${e.timeoutSeconds}).")
+                    throw ProgramResult(TIMEOUT_EXIT_CODE)
+                },
+            ) {
+                runQuarkdown(strategy, cliOptions, pipelineOptions)
+            }
 
         this.postExecute(outcome, cliOptions, pipelineOptions)
     }

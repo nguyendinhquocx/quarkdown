@@ -25,7 +25,7 @@ class EmojiTest {
     @Test
     fun `emoji with two skin tones`() {
         execute(".emoji {people-holding-hands~medium-light,medium-dark}") {
-            assertEquals("<p>\uD83E\uDDD1\uD83C\uDFFC\u200D\uD83E\uDD1D\u200D\uD83E\uDDD1\uD83C\uDFFE</p>", it)
+            assertEquals("<p>\uD83E\uDDD1\uD83C\uDFFC&zwj;\uD83E\uDD1D&zwj;\uD83E\uDDD1\uD83C\uDFFE</p>", it)
         }
     }
 
@@ -33,6 +33,32 @@ class EmojiTest {
     fun `unknown emoji`() {
         execute(".emoji {unknown}") {
             assertEquals("<p>:unknown:</p>", it)
+        }
+    }
+
+    @Test
+    fun `all emojis enumerated into a table`() {
+        execute(
+            """
+            .var {headers}
+                - Emoji
+                - Code
+
+            .tablebyrows {.headers}
+                .foreach {.allemojis}
+                    emoji code:
+                    .pair {.emoji} {.code::codespan}
+            """.trimIndent(),
+        ) {
+            val prefix =
+                "<table><thead><tr><th>Emoji</th><th>Code</th></tr></thead><tbody>" +
+                    "<tr><td>\uD83D\uDE00</td><td><span class=\"codespan-content\"><code>smile</code></span></td></tr>" +
+                    "<tr><td>\uD83D\uDE03</td><td><span class=\"codespan-content\"><code>smile-with-big-eyes</code></span></td></tr>" +
+                    "<tr><td>\uD83D\uDE04</td><td><span class=\"codespan-content\"><code>grin</code></span></td></tr><tr>"
+            assertEquals(
+                prefix,
+                it.toString().substring(0, prefix.length),
+            )
         }
     }
 }

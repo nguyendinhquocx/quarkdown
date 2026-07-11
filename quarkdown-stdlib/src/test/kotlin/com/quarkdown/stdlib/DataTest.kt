@@ -288,6 +288,77 @@ class DataTest {
     }
 
     @Test
+    fun `list files recursively`() {
+        val files =
+            listFiles(
+                context,
+                LIST_FILES_FOLDER,
+                listDirectories = false,
+                recursive = true,
+                fullPath = false,
+                sortBy = FileSorting.NAME,
+            )
+        val names = files.unwrappedValue.map { it.unwrappedValue }.toList()
+        assertEquals(listOf("a.txt", "b.txt", "c.txt", "d.txt"), names)
+    }
+
+    @Test
+    fun `list files with name pattern`() {
+        val files =
+            listFiles(
+                context,
+                LIST_FILES_FOLDER,
+                pattern = ".*\\.txt",
+                fullPath = false,
+                sortBy = FileSorting.NAME,
+            )
+        val names = files.unwrappedValue.map { it.unwrappedValue }.toList()
+        assertEquals(listOf("a.txt", "b.txt", "c.txt"), names)
+    }
+
+    @Test
+    fun `list files with name pattern recursively`() {
+        val files =
+            listFiles(
+                context,
+                LIST_FILES_FOLDER,
+                listDirectories = false,
+                recursive = true,
+                pattern = "d\\.txt",
+                fullPath = true,
+                sortBy = FileSorting.NAME,
+            )
+        val paths = files.unwrappedValue.map { it.unwrappedValue }.toList()
+        assertEquals(1, paths.size)
+        assertTrue(paths.single().endsWith("listfiles${File.separator}d${File.separator}d.txt"))
+    }
+
+    @Test
+    fun `list files with name pattern does not match path separators`() {
+        val files =
+            listFiles(
+                context,
+                LIST_FILES_FOLDER,
+                recursive = true,
+                pattern = "d/d\\.txt",
+            )
+        assertTrue(files.unwrappedValue.toList().isEmpty())
+    }
+
+    @Test
+    fun `list files with non-recursive pattern does not traverse nested directories`() {
+        val files =
+            listFiles(
+                context,
+                LIST_FILES_FOLDER,
+                listDirectories = false,
+                recursive = false,
+                pattern = "d\\.txt",
+            )
+        assertTrue(files.unwrappedValue.toList().isEmpty())
+    }
+
+    @Test
     fun `list files non-existent directory`() {
         assertFails { listFiles(context, "nonexistent") }
     }

@@ -3,23 +3,27 @@ package com.quarkdown.server
 import com.quarkdown.server.stop.Stoppable
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.plugins.sse.SSE
+import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import io.ktor.websocket.Frame
-import io.ktor.websocket.readText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.net.Socket
+import java.net.SocketTimeoutException
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -37,6 +41,8 @@ class LocalFileWebServerTest {
     private lateinit var server: LocalFileWebServer
     private var port: Int = 0
     private var serverStoppable: Stoppable? = null
+
+    private val baseUrl: String get() = "http://$SERVER_HOST:$port"
 
     @BeforeTest
     fun setUp() {
@@ -92,262 +98,214 @@ class LocalFileWebServerTest {
     @Test
     fun `server serves file`() =
         runBlocking {
-            // Create HTTP client
             val client = HttpClient(CIO)
 
-            try {
-                // Request the file
-                val response = client.get("http://localhost:$port/")
+            client.use { client ->
+                val response = client.get("$baseUrl/")
 
-                // Check response
                 assertEquals(HttpStatusCode.OK, response.status)
                 val responseText = response.bodyAsText()
                 assertTrue(responseText.contains("<title>Test Page</title>"))
                 assertTrue(responseText.contains("<h1>Test Page</h1>"))
-            } finally {
-                client.close()
             }
         }
 
     @Test
-    fun `websocket reload`() =
+    fun `reload event is delivered to subscriber`() =
         runBlocking {
-            // Create HTTP client with WebSockets support
             val client =
                 HttpClient(CIO) {
-                    install(WebSockets)
+                    install(SSE)
                 }
 
-            try {
-                // Connect to reload endpoint
-                val messageReceived = CompletableDeferred<String>()
+            client.use { client ->
+                val received = CompletableDeferred<String>()
 
-                // First client to receive reload messages
-                val receiverJob =
+                val subscriber =
                     launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            // Wait for a message
-                            val frame = incoming.receive()
-                            if (frame is Frame.Text) {
-                                messageReceived.complete(frame.readText())
-                            }
+                        client.sse("$baseUrl/reload") {
+                            val event = incoming.first()
+                            received.complete(event.data ?: "")
                         }
                     }
 
-                // Wait a bit to ensure connection is established
+                // Give the subscription time to settle.
                 delay(500)
 
-                // Second client to send reload message
-                val senderJob =
-                    launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            // Send a reload message
-                            send(Frame.Text("reload"))
-                        }
-                    }
+                val triggerStatus = client.post("$baseUrl/reload").status
 
-                // Wait for message to be received with timeout
-                val receivedMessage =
-                    withTimeout(5.seconds) {
-                        messageReceived.await()
-                    }
+                val payload = withTimeout(5.seconds) { received.await() }
 
-                // Check received message
-                assertEquals("reload", receivedMessage)
+                assertEquals(HttpStatusCode.NoContent, triggerStatus)
+                assertEquals("reload", payload, "Subscriber should receive the broadcast reload event")
 
-                // Cancel jobs
-                receiverJob.cancel()
-                senderJob.cancel()
-            } finally {
-                client.close()
+                subscriber.cancel()
             }
         }
 
     @Test
-    fun `concurrent reload requests`() =
+    fun `multiple subscribers receive the same reload broadcasts`() =
         runBlocking {
-            // Create HTTP client with WebSockets support
             val client =
                 HttpClient(CIO) {
-                    install(WebSockets)
+                    install(SSE)
                 }
 
-            try {
-                // Connect multiple clients and send reload messages concurrently
-                val numClients = 5
-                val messagesReceived = CompletableDeferred<Int>()
-                var receivedCount = 0
+            client.use { client ->
+                val numSubscribers = 5
+                val numBroadcasts = 5
+                val receivedTotal = AtomicInteger(0)
+                val allReceived = CompletableDeferred<Int>()
 
-                // Start a receiver to count messages
-                val receiverJob =
-                    launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            try {
-                                repeat(numClients) {
-                                    val frame = incoming.receive()
-                                    if (frame is Frame.Text) {
-                                        receivedCount++
-                                        if (receivedCount >= numClients) {
-                                            messagesReceived.complete(receivedCount)
-                                        }
-                                    }
-                                }
-                            } catch (_: CancellationException) {
-                                // Expected when job is cancelled
-                            } catch (e: Exception) {
-                                println("[DEBUG_LOG] Error in receiver: ${e.message}")
-                            }
-                        }
-                    }
-
-                // Wait a bit to ensure connection is established
-                delay(500)
-
-                // Launch multiple senders concurrently
-                val senderJobs =
-                    List(numClients) { clientId ->
+                val subscriberJobs =
+                    List(numSubscribers) {
                         launch {
-                            client.webSocket("ws://localhost:$port/reload") {
-                                // Send a reload message
-                                send(Frame.Text("reload-$clientId"))
+                            client.sse("$baseUrl/reload") {
+                                try {
+                                    var count = 0
+                                    incoming.collect {
+                                        count++
+                                        val total = receivedTotal.incrementAndGet()
+                                        if (total >= numSubscribers * numBroadcasts) {
+                                            allReceived.complete(total)
+                                        }
+                                        if (count >= numBroadcasts) return@collect
+                                    }
+                                } catch (_: CancellationException) {
+                                    // Expected when the test completes.
+                                }
                             }
                         }
                     }
 
-                // Wait for all messages to be received with timeout
-                val count =
+                // Give all subscribers time to connect.
+                delay(500)
+
+                repeat(numBroadcasts) {
+                    client.post("$baseUrl/reload")
+                }
+
+                val total =
                     withTimeout(10.seconds) {
-                        messagesReceived.await()
+                        allReceived.await()
                     }
 
-                // Check received message count
-                assertEquals(numClients, count)
+                assertEquals(
+                    numSubscribers * numBroadcasts,
+                    total,
+                    "Every subscriber should receive every broadcast",
+                )
 
-                // Cancel jobs
-                receiverJob.cancel()
-                senderJobs.forEach { it.cancel() }
-            } finally {
-                client.close()
+                subscriberJobs.forEach { it.cancel() }
             }
         }
 
     @Test
-    fun `late-connecting client does not receive stale messages`() =
+    fun `late-connecting subscriber does not receive stale broadcasts`() =
         runBlocking {
             val client =
                 HttpClient(CIO) {
-                    install(WebSockets)
+                    install(SSE)
                 }
 
-            try {
-                // Client A connects and sends a message.
-                val messageSent = CompletableDeferred<Unit>()
-                val senderJob =
-                    launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            send(Frame.Text("reload-1"))
-                            messageSent.complete(Unit)
-                            // Keep connection open briefly to allow the broadcast to propagate.
-                            delay(500)
-                        }
-                    }
-
-                // Wait until the message has been broadcast.
-                withTimeout(5.seconds) { messageSent.await() }
+            client.use { client ->
+                // Broadcast before any subscriber is listening.
+                client.post("$baseUrl/reload")
                 delay(300)
 
-                // Client B connects after the message was sent.
-                // It should NOT receive the stale "reload-1" message.
-                val receivedStaleMessage = CompletableDeferred<Boolean>()
-                val lateReceiverJob =
+                // A subscriber connecting now should not see the earlier broadcast.
+                val receivedStale = CompletableDeferred<Boolean>()
+                val lateSubscriber =
                     launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            try {
-                                withTimeout(1.seconds) {
-                                    incoming.receive()
-                                    receivedStaleMessage.complete(true)
-                                }
-                            } catch (_: Exception) {
-                                // Timeout means no message was received — expected.
-                                receivedStaleMessage.complete(false)
-                            }
+                        client.sse("$baseUrl/reload") {
+                            incoming.first()
+                            receivedStale.complete(true)
                         }
                     }
 
+                // Give the late subscriber a window to (incorrectly) receive a stale broadcast.
+                // The job is then cancelled so the SSE session is torn down regardless.
                 val gotStale =
-                    withTimeout(5.seconds) {
-                        receivedStaleMessage.await()
-                    }
+                    withTimeoutOrNull(1.seconds) { receivedStale.await() } ?: false
+                lateSubscriber.cancel()
 
-                assertEquals(false, gotStale, "Late-connecting client should not receive stale messages")
-
-                senderJob.cancel()
-                lateReceiverJob.cancel()
-            } finally {
-                client.close()
+                assertEquals(false, gotStale, "Late-connecting subscriber should not receive stale broadcasts")
             }
         }
 
     @Test
-    fun `server message content is transmitted correctly`() =
+    fun `abruptly disconnected subscriber does not break the server`() =
         runBlocking {
-            val client =
-                HttpClient(CIO) {
-                    install(WebSockets)
+            // Open a raw TCP connection and start an SSE subscription, then force a TCP RST (rather than a graceful FIN) by closing with SO_LINGER(0).
+            Socket(SERVER_HOST, port).use { socket ->
+                val out = socket.getOutputStream()
+                out.write(
+                    (
+                        "GET ${ServerEndpoints.RELOAD_LIVE_PREVIEW} HTTP/1.1\r\n" +
+                            "Host: $SERVER_HOST:$port\r\n" +
+                            "Accept: text/event-stream\r\n" +
+                            "Connection: keep-alive\r\n" +
+                            "\r\n"
+                    ).toByteArray(),
+                )
+                out.flush()
+
+                // Wait for the end of HTTP headers so we know the server has registered the subscription.
+                // Bound the read so a stalled handshake fails the test fast instead of hanging the suite.
+                socket.soTimeout = 2_000
+                val reader = socket.getInputStream().bufferedReader()
+                try {
+                    while (true) {
+                        val line = reader.readLine() ?: break
+                        if (line.isEmpty()) break
+                    }
+                } catch (_: SocketTimeoutException) {
+                    // Treat as "headers stalled": proceed with the abrupt close anyway,
+                    // which is what the test is here to exercise.
                 }
 
-            try {
-                val messageReceived = CompletableDeferred<String>()
+                // Force an immediate RST instead of a graceful close.
+                socket.setSoLinger(true, 0)
+            }
 
-                // Receiver listens for the exact message content.
-                val receiverJob =
+            // Give the server a moment to either notice the disconnect or queue a write to the dead socket.
+            delay(200)
+
+            HttpClient(CIO) {
+                install(SSE)
+            }.use { client ->
+                // Server must still respond to triggers after the abrupt disconnect.
+                val triggerStatus = client.post("$baseUrl/reload").status
+                assertEquals(HttpStatusCode.NoContent, triggerStatus)
+
+                // A fresh subscriber must still receive subsequent broadcasts, proving the broadcast
+                // flow was not poisoned by the failed write to the dead subscriber.
+                val received = CompletableDeferred<String>()
+                val subscriber =
                     launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            val frame = incoming.receive()
-                            if (frame is Frame.Text) {
-                                messageReceived.complete(frame.readText())
-                            }
+                        client.sse("$baseUrl/reload") {
+                            val event = incoming.first()
+                            received.complete(event.data ?: "")
                         }
                     }
-
                 delay(500)
+                client.post("$baseUrl/reload")
 
-                // Sender transmits the ServerMessage.content value.
-                val senderJob =
-                    launch {
-                        client.webSocket("ws://localhost:$port/reload") {
-                            send(Frame.Text("reload"))
-                        }
-                    }
-
-                val received =
-                    withTimeout(5.seconds) {
-                        messageReceived.await()
-                    }
-
-                assertEquals("reload", received, "Received message should match ServerMessage.content")
-
-                receiverJob.cancel()
-                senderJob.cancel()
-            } finally {
-                client.close()
+                val payload = withTimeout(5.seconds) { received.await() }
+                assertEquals("reload", payload)
+                subscriber.cancel()
             }
         }
 
     @Test
     fun `server handles file not found`() =
         runBlocking {
-            // Create HTTP client
             val client = HttpClient(CIO)
 
-            try {
-                // Request a non-existent file
-                val response = client.get("http://localhost:$port/nonexistent.html")
+            client.use { client ->
+                val response = client.get("$baseUrl/nonexistent.html")
 
-                // Check response - should be 404 Not Found
                 assertEquals(HttpStatusCode.NotFound, response.status)
-            } finally {
-                client.close()
             }
         }
 

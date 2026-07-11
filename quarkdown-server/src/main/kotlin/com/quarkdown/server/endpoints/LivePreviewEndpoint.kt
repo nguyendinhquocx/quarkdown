@@ -1,7 +1,6 @@
 package com.quarkdown.server.endpoints
 
-import com.quarkdown.core.template.TemplateProcessor
-import com.quarkdown.server.SERVER_HOST
+import com.quarkdown.server.preview.HtmlLivePreviewWrapper
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -14,13 +13,9 @@ import java.io.File
  */
 private const val DEFAULT_FILE = "index.html"
 
-private const val TEMPLATE_SOURCE_FILE_PLACEHOLDER = "srcFile"
-private const val TEMPLATE_SERVER_HOST_PLACEHOLDER = "serverHost"
-private const val TEMPLATE_SERVER_PORT_PLACEHOLDER = "serverPort"
-
 /**
  * Handler of the live preview endpoint (`/live/<file>`) which serves static files relative to a target file or directory.
- * Additionally, for HTML files, it serves a wrapper HTML that includes a WebSocket script + iframe for live previewing.
+ * Additionally, for HTML files, it serves a wrapper HTML that includes a reload event-stream subscription + iframe for live previewing.
  * @param origin the root directory from which files are served
  */
 class LivePreviewEndpoint(
@@ -41,12 +36,8 @@ class LivePreviewEndpoint(
     /**
      * Handles a request to the live preview endpoint, by serving the requested file or a wrapper HTML for live preview.
      * @param call the application call
-     * @param port the port the server is running on
      */
-    suspend fun handleRequest(
-        call: ApplicationCall,
-        port: Int,
-    ) {
+    suspend fun handleRequest(call: ApplicationCall) {
         val file = getTargetFile(call)
 
         if (!file.exists() || !file.isFile) {
@@ -56,7 +47,7 @@ class LivePreviewEndpoint(
 
         when {
             file.extension.lowercase() == "html" -> {
-                call.respondText(createHtmlWrapperText(file, port), ContentType.Text.Html)
+                call.respondText(createHtmlWrapperText(file), ContentType.Text.Html)
             }
 
             // Non-HTML files are served directly.
@@ -66,20 +57,8 @@ class LivePreviewEndpoint(
         }
     }
 
-    private fun createHtmlWrapperText(
-        targetFile: File,
-        serverPort: Int,
-    ): String {
-        // The iframe src is an absolute path from the server root,
-        // which correctly handles both root-level and subdirectory files.
+    private fun createHtmlWrapperText(targetFile: File): String {
         val sourceFile = "/${targetFile.relativeTo(origin).invariantSeparatorsPath}"
-
-        return TemplateProcessor
-            .fromResourceName("/live-preview/wrapper.html.jte", referenceClass = javaClass)
-            .value(TEMPLATE_SOURCE_FILE_PLACEHOLDER, sourceFile)
-            .value(TEMPLATE_SERVER_HOST_PLACEHOLDER, SERVER_HOST)
-            .value(TEMPLATE_SERVER_PORT_PLACEHOLDER, serverPort.toString())
-            .process()
-            .toString()
+        return HtmlLivePreviewWrapper(srcFile = sourceFile).render()
     }
 }

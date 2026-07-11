@@ -13,7 +13,7 @@ import com.quarkdown.core.parser.walker.funcall.FunctionCallWalkerParser
 class FunctionCallPatterns {
     /**
      * Function name prefixed by '.', followed by a sequence of arguments.
-     * Can be preceeded by the beginning of the line, a whitespace or a symbol.
+     * Can be preceded by the beginning of the line, a whitespace or a symbol.
      * This is a 'flag' pattern, meaning it does not capture any content,
      * but instead detects the beginning of a function call and delegates the scanning to [FunctionCallWalkerParser].
      */
@@ -31,7 +31,7 @@ class FunctionCallPatterns {
                     .withReference("name", FunctionCallGrammar.IDENTIFIER_PATTERN)
                     .build(),
             walker = { data, remaining ->
-                val result = FunctionCallWalkerParser(remaining, allowsBody = false).parse()
+                val result = FunctionCallWalkerParser(remaining, allowsBody = true).parse()
                 WalkedToken(
                     token = FunctionCallToken(data, isBlock = false, walkerResult = result),
                     charsConsumed = result.endIndex,

@@ -7,6 +7,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.apache.pdfbox:pdfbox:3.0.6")
     implementation(project(":quarkdown-core"))
+    implementation(project(":quarkdown-template"))
     implementation(project(":quarkdown-html"))
     implementation(project(":quarkdown-plaintext"))
     implementation(project(":quarkdown-server"))
@@ -15,7 +16,7 @@ dependencies {
     implementation(project(":quarkdown-lsp"))
     implementation(project(":quarkdown-install-layout-navigator"))
     implementation("com.github.ajalt.clikt:clikt:5.1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("io.methvin:directory-watcher:0.19.1")
 }
 

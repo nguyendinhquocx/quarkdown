@@ -28,8 +28,10 @@ class QuarkdownSignatureTest :
             mapOf(
                 "TestModule.kt" to
                     """
-                    val TestModule: QuarkdownModule = moduleOf(::$functionName)
-                    $functionCode
+                    object TestModule {
+                        val Module: QuarkdownModule = moduleOf(this::$functionName)
+                        $functionCode
+                    }
                     """.trimIndent(),
             )
 
@@ -75,7 +77,7 @@ class QuarkdownSignatureTest :
                 """
                 .func a:{Int} \
                       b:{Int} \
-                      c:{Int} \
+                      c:{Int}
                 -> Void
                 """.trimIndent(),
                 it,
@@ -90,7 +92,7 @@ class QuarkdownSignatureTest :
                 """
                 .func abcd:{Int} \
                         ef:{String} \
-                    ghijkl:{Int} \
+                    ghijkl:{Int}
                 -> Void
                 """.trimIndent(),
                 it,
@@ -105,7 +107,7 @@ class QuarkdownSignatureTest :
                 """
                 .func      abcd:{Int} \
                              ef:{String} \
-                 ghijklmnopqrst:{Int} \
+                 ghijklmnopqrst:{Int}
                 -> Void
                 """.trimIndent(),
                 it,

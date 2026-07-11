@@ -2,6 +2,7 @@ package com.quarkdown.core
 
 import com.quarkdown.core.ast.MarkdownContent
 import com.quarkdown.core.ast.attributes.error.asNode
+import com.quarkdown.core.ast.attributes.style.NodeStyle
 import com.quarkdown.core.ast.base.TextNode
 import com.quarkdown.core.ast.base.block.BlockQuote
 import com.quarkdown.core.ast.base.block.Paragraph
@@ -10,7 +11,6 @@ import com.quarkdown.core.ast.base.inline.Strong
 import com.quarkdown.core.ast.base.inline.Text
 import com.quarkdown.core.ast.quarkdown.FunctionCallNode
 import com.quarkdown.core.ast.quarkdown.block.Box
-import com.quarkdown.core.ast.quarkdown.block.Container
 import com.quarkdown.core.context.MutableContext
 import com.quarkdown.core.document.DocumentInfo
 import com.quarkdown.core.document.DocumentType
@@ -21,7 +21,6 @@ import com.quarkdown.core.function.library.LibraryRegistrant
 import com.quarkdown.core.function.library.loader.MultiFunctionLibraryLoader
 import com.quarkdown.core.function.library.module.moduleOf
 import com.quarkdown.core.function.reflect.annotation.Injected
-import com.quarkdown.core.function.reflect.annotation.Name
 import com.quarkdown.core.function.reflect.annotation.NotForDocumentType
 import com.quarkdown.core.function.value.BooleanValue
 import com.quarkdown.core.function.value.DynamicValue
@@ -53,7 +52,6 @@ class FunctionNodeExpansionTest {
         b: Number,
     ) = NumberValue(a.toFloat() + b.toFloat())
 
-    @Name("customfunction")
     @NotForDocumentType(DocumentType.SLIDES)
     fun myFunction(x: String) = StringValue(x)
 
@@ -61,7 +59,7 @@ class FunctionNodeExpansionTest {
     fun echoBoolean(value: Boolean) = BooleanValue(value)
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun echoEnum(value: Container.Alignment) = StringValue(value.name)
+    fun echoEnum(value: NodeStyle.Alignment) = StringValue(value.name)
 
     @Suppress("MemberVisibilityCanBePrivate")
     fun resourceContent(path: String) = StringValue(javaClass.getResourceAsStream("/function/$path")!!.reader().readText())
@@ -160,57 +158,13 @@ class FunctionNodeExpansionTest {
     }
 
     @Test
-    fun `custom function name`() {
-        val node =
-            FunctionCallNode(
-                context,
-                "customfunction",
-                listOf(
-                    FunctionCallArgument(DynamicValue("abc")),
-                ),
-                isBlock = false,
-            )
-
-        context.register(node)
-
-        assertTrue(node.children.isEmpty())
-
-        expander.expandAll()
-
-        assertEquals(1, node.children.size)
-        assertNodeEquals(Text("abc"), node.children.first())
-    }
-
-    @Test
-    fun `custom function name, failing`() {
-        val node =
-            FunctionCallNode(
-                context,
-                "myFunction",
-                listOf(
-                    FunctionCallArgument(DynamicValue("abc")),
-                ),
-                isBlock = false,
-            )
-
-        context.register(node)
-
-        assertTrue(node.children.isEmpty())
-
-        expander.expandAll()
-
-        assertEquals(0, node.children.size)
-        assertContains(node.error!!.first.message!!, "reference")
-    }
-
-    @Test
     fun `resource content expansion, failing`() {
         val node =
             FunctionCallNode(
                 context,
                 "resourceContent",
                 listOf(
-                    FunctionCallArgument(DynamicValue("non-existant-resource")),
+                    FunctionCallArgument(DynamicValue("non-existent-resource")),
                 ),
                 isBlock = false,
             )
@@ -299,7 +253,7 @@ class FunctionNodeExpansionTest {
                 context,
                 "echoEnum",
                 listOf(
-                    FunctionCallArgument(DynamicValue("non-existant-value")),
+                    FunctionCallArgument(DynamicValue("non-existent-value")),
                 ),
                 isBlock = false,
             )

@@ -1,8 +1,18 @@
 # Build stage via Gradle
 FROM gradle:8.14.3-jdk17 AS builder
 
-COPY . /app
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nodejs npm \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app && chown -R gradle:gradle /app
+
+USER gradle
+
 WORKDIR /app
+
+COPY --chown=gradle:gradle . /app
 
 # Build the distribution zip
 RUN gradle --no-daemon distZip
@@ -17,11 +27,9 @@ RUN unzip quarkdown.zip && rm quarkdown.zip
 # Run stage
 FROM ghcr.io/puppeteer/puppeteer:24.15.0 AS runner
 
-# Install JDK
-USER root
-RUN apt-get update && apt-get install -y openjdk-17-jdk \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ENV QD_NPM_PREFIX="/home/pptruser" \
+    NODE_PATH="/home/pptruser/node_modules" \
+    PUPPETEER_CACHE_DIR="/home/pptruser/.cache/puppeteer"
 
 USER pptruser
 WORKDIR /app
@@ -32,9 +40,9 @@ ENTRYPOINT ["quarkdown"]
 
 LABEL org.opencontainers.image.vendor="Quarkdown"
 LABEL org.opencontainers.image.title="Quarkdown Docker image"
-LABEL org.opencontainers.image.description="Versatile Markdown-based typsetting system."
-LABEL org.opencontainers.image.authors="Giorgio Garofalo (iamgio) and contributors <info@quarkdown.com>"
+LABEL org.opencontainers.image.description="Versatile Markdown-based typesetting system."
+LABEL org.opencontainers.image.authors="Giorgio Garofalo (iamgio) <info@quarkdown.com>"
 LABEL org.opencontainers.image.url="https://quarkdown.com"
 LABEL org.opencontainers.image.source="https://github.com/iamgio/quarkdown"
-LABEL org.opencontainers.image.documentation="https://quarkdown.com/docs/"
-LABEL org.opencontainers.image.licenses="GPL-3.0"
+LABEL org.opencontainers.image.documentation="https://quarkdown.com/wiki"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only AND AGPL-3.0-only"

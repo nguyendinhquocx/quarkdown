@@ -14,9 +14,6 @@ import com.quarkdown.core.visitor.token.TokenVisitor
  *
  * This stage takes a sequence of tokens (produced by the [LexingStage]) as input and
  * produces an [AstRoot] as output.
- *
- * The AST represents the hierarchical structure of the document and is used by
- * subsequent stages for further processing and rendering.
  */
 object ParsingStage : PipelineStage<Sequence<Token>, AstRoot> {
     override val hook = PipelineHooks::afterParsing
@@ -29,6 +26,8 @@ object ParsingStage : PipelineStage<Sequence<Token>, AstRoot> {
             data.context.flavor.parserFactory
                 .newParser(data.context)
 
-        return AstRoot(children = input.acceptAll(parser))
+        val nodes = input.acceptAll(parser).toList()
+
+        return AstRoot(children = nodes)
     }
 }

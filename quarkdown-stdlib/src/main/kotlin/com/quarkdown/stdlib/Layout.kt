@@ -1,8 +1,11 @@
+@file:QModule
+
 package com.quarkdown.stdlib
 
 import com.quarkdown.core.ast.InlineContent
 import com.quarkdown.core.ast.InlineMarkdownContent
 import com.quarkdown.core.ast.MarkdownContent
+import com.quarkdown.core.ast.attributes.style.NodeStyle
 import com.quarkdown.core.ast.base.block.Table
 import com.quarkdown.core.ast.dsl.buildInline
 import com.quarkdown.core.ast.quarkdown.block.Box
@@ -20,12 +23,10 @@ import com.quarkdown.core.context.localization.localizeOrDefault
 import com.quarkdown.core.context.localization.localizeOrNull
 import com.quarkdown.core.document.size.Size
 import com.quarkdown.core.document.size.Sizes
-import com.quarkdown.core.function.library.module.QuarkdownModule
-import com.quarkdown.core.function.library.module.moduleOf
+import com.quarkdown.core.function.reflect.annotation.Body
 import com.quarkdown.core.function.reflect.annotation.Injected
 import com.quarkdown.core.function.reflect.annotation.LikelyBody
 import com.quarkdown.core.function.reflect.annotation.LikelyNamed
-import com.quarkdown.core.function.reflect.annotation.Name
 import com.quarkdown.core.function.value.MarkdownContentValue
 import com.quarkdown.core.function.value.NodeValue
 import com.quarkdown.core.function.value.Value
@@ -35,31 +36,71 @@ import com.quarkdown.core.function.value.wrappedAsValue
 import com.quarkdown.core.log.Log
 import com.quarkdown.core.misc.color.Color
 import com.quarkdown.core.util.node.toPlainText
+import com.quarkdown.processor.annotation.Name
+import com.quarkdown.processor.annotation.QFunction
+import com.quarkdown.processor.annotation.QModule
+import com.quarkdown.processor.annotation.Spread
 
 /**
- * `Layout` stdlib module exporter.
- * This module handles position and shape of an element.
+ * @param foregroundColor text color. Default if unset
+ * @param backgroundColor background color. Transparent if unset
+ * @param borderColor border color. Default if unset and [borderWidth] is set
+ * @param borderWidth border width. Default if unset and [borderColor] is set
+ * @param borderStyle border style. Normal (solid) if unset and [borderColor] or [borderWidth] is set
+ * @param alignment alignment of the content. Default if unset
+ * @param textAlignment alignment of the text. [alignment] if unset
+ * @param margin whitespace outside the content. None if unset
+ * @param padding whitespace around the content. None if unset
+ * @param cornerRadius corner (and border) radius. None if unset
+ * @param fontSize relative font size of the text. Normal if unset
+ * @param fontWeight font weight of the text. Normal if unset
+ * @param fontStyle font style of the text. Normal if unset
+ * @param fontVariant font variant of the text. Normal if unset
+ * @param textDecoration text decoration of the text. None if unset
+ * @param textCase text case of the text. Normal if unset
  */
-val Layout: QuarkdownModule =
-    moduleOf(
-        ::container,
-        ::align,
-        ::center,
-        ::float,
-        ::row,
-        ::column,
-        ::grid,
-        ::landscape,
-        ::fullColumnSpan,
-        ::whitespace,
-        ::clip,
-        ::box,
-        ::toDo,
-        ::collapse,
-        ::inlineCollapse,
-        ::numbered,
-        ::table,
-    )
+data class StyleOptions(
+    @Name("foreground") val foregroundColor: Color? = null,
+    @Name("background") val backgroundColor: Color? = null,
+    @Name("border") val borderColor: Color? = null,
+    @Name("borderwidth") val borderWidth: Sizes? = null,
+    @Name("borderstyle") val borderStyle: NodeStyle.BorderStyle? = null,
+    @LikelyNamed val alignment: NodeStyle.Alignment? = null,
+    @Name("textalignment") val textAlignment: NodeStyle.TextAlignment? = null,
+    @Name("margin") val margin: Sizes? = null,
+    @Name("padding") val padding: Sizes? = null,
+    @Name("radius") val cornerRadius: Sizes? = null,
+    @Name("fontsize") val fontSize: TextTransformData.Size? = null,
+    @Name("fontweight") val fontWeight: TextTransformData.Weight? = null,
+    @Name("fontstyle") val fontStyle: TextTransformData.Style? = null,
+    @Name("fontvariant") val fontVariant: TextTransformData.Variant? = null,
+    @Name("textdecoration") val textDecoration: TextTransformData.Decoration? = null,
+    @Name("textcase") val textCase: TextTransformData.Case? = null,
+) {
+    /** @see com.quarkdown.core.ast.attributes.style.StylableNode */
+    fun toNodeStyle(): NodeStyle =
+        NodeStyle(
+            foregroundColor = foregroundColor,
+            backgroundColor = backgroundColor,
+            borderColor = borderColor,
+            borderWidth = borderWidth,
+            borderStyle = borderStyle,
+            margin = margin,
+            padding = padding,
+            cornerRadius = cornerRadius,
+            alignment = alignment,
+            textAlignment = textAlignment ?: alignment?.let(NodeStyle.TextAlignment::fromAlignment),
+            textTransform =
+                TextTransformData(
+                    size = fontSize,
+                    weight = fontWeight,
+                    style = fontStyle,
+                    variant = fontVariant,
+                    decoration = textDecoration,
+                    case = textCase,
+                ),
+        )
+}
 
 /**
  * A general-purpose container that groups content.
@@ -69,22 +110,6 @@ val Layout: QuarkdownModule =
  * @param width width of the container. No constraint if unset
  * @param height height of the container. No constraint if unset
  * @param fullWidth whether the container should take up the full width of the parent. Overridden by [width]. False if unset
- * @param foregroundColor text color. Default if unset
- * @param backgroundColor background color. Transparent if unset
- * @param borderColor border color. Default if unset and [borderWidth] is set
- * @param borderWidth border width. Default if unset and [borderColor] is set
- * @param borderStyle border style. Normal (solid) if unset and [borderColor] or [borderWidth] is set
- * @param margin whitespace outside the content. None if unset
- * @param padding whitespace around the content. None if unset
- * @param cornerRadius corner (and border) radius. None if unset
- * @param alignment alignment of the content. Default if unset
- * @param textAlignment alignment of the text. [alignment] if unset
- * @param fontSize relative font size of the text. Normal if unset
- * @param fontWeight font weight of the text. Normal if unset
- * @param fontStyle font style of the text. Normal if unset
- * @param fontVariant font variant of the text. Normal if unset
- * @param textDecoration text decoration of the text. None if unset
- * @param textCase text case of the text. Normal if unset
  * @param float floating position of the container within the parent. Not floating if unset
  * @param fullColumnSpan whether the container should span across all columns in a multi-column layout. False if unset
  * @param className CSS class name to apply to the container, if supported by the renderer. None if unset
@@ -92,48 +117,24 @@ val Layout: QuarkdownModule =
  * @return the new [Container] node
  * @wiki container
  */
+@QFunction
 fun container(
     @LikelyNamed width: Size? = null,
     @LikelyNamed height: Size? = null,
     @Name("fullwidth") fullWidth: Boolean = false,
-    @Name("foreground") foregroundColor: Color? = null,
-    @Name("background") backgroundColor: Color? = null,
-    @Name("border") borderColor: Color? = null,
-    @Name("borderwidth") borderWidth: Sizes? = null,
-    @Name("borderstyle") borderStyle: Container.BorderStyle? = null,
-    @Name("margin") margin: Sizes? = null,
-    @Name("padding") padding: Sizes? = null,
-    @Name("radius") cornerRadius: Sizes? = null,
-    @LikelyNamed alignment: Container.Alignment? = null,
-    @Name("textalignment") textAlignment: Container.TextAlignment? = alignment?.let(Container.TextAlignment::fromAlignment),
-    @Name("fontsize") fontSize: TextTransformData.Size? = null,
-    @Name("fontweight") fontWeight: TextTransformData.Weight? = null,
-    @Name("fontstyle") fontStyle: TextTransformData.Style? = null,
-    @Name("fontvariant") fontVariant: TextTransformData.Variant? = null,
-    @Name("textdecoration") textDecoration: TextTransformData.Decoration? = null,
-    @Name("textcase") textCase: TextTransformData.Case? = null,
     @LikelyNamed float: Container.FloatAlignment? = null,
     @Name("fullspan") fullColumnSpan: Boolean = false,
     @Name("classname") className: String? = null,
-    @LikelyBody body: MarkdownContent? = null,
+    @Spread style: StyleOptions = StyleOptions(),
+    @Body body: MarkdownContent? = null,
 ) = Container(
     width,
     height,
     fullWidth,
-    foregroundColor,
-    backgroundColor,
-    borderColor,
-    borderWidth,
-    borderStyle,
-    margin,
-    padding,
-    cornerRadius,
-    alignment,
-    textAlignment,
-    TextTransformData(fontSize, fontWeight, fontStyle, textDecoration, textCase, fontVariant),
     float,
     fullColumnSpan,
     className,
+    style.toNodeStyle(),
     body?.children ?: emptyList(),
 ).wrappedAsValue()
 
@@ -146,13 +147,13 @@ fun container(
  * @see container
  * @wiki align
  */
+@QFunction
 fun align(
-    alignment: Container.Alignment,
-    @LikelyBody body: MarkdownContent,
+    alignment: NodeStyle.Alignment,
+    @Body body: MarkdownContent,
 ) = container(
     fullWidth = true,
-    alignment = alignment,
-    textAlignment = Container.TextAlignment.fromAlignment(alignment),
+    style = StyleOptions(alignment = alignment),
     body = body,
 )
 
@@ -164,9 +165,10 @@ fun align(
  * @see align
  * @wiki align
  */
+@QFunction
 fun center(
-    @LikelyBody body: MarkdownContent,
-) = align(Container.Alignment.CENTER, body)
+    @Body body: MarkdownContent,
+) = align(NodeStyle.Alignment.CENTER, body)
 
 /**
  * Turns content into a floating element, allowing subsequent content to wrap around it.
@@ -176,9 +178,10 @@ fun center(
  * @return the new floating [Container] node
  * @wiki float
  */
+@QFunction
 fun float(
     @LikelyNamed alignment: Container.FloatAlignment,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = container(
     float = alignment,
     body = body,
@@ -216,11 +219,12 @@ private fun stack(
  * @return the new [Stacked] node
  * @wiki stacks
  */
+@QFunction
 fun row(
     @Name("alignment") mainAxisAlignment: Stacked.MainAxisAlignment = Stacked.MainAxisAlignment.START,
     @Name("cross") crossAxisAlignment: Stacked.CrossAxisAlignment = Stacked.CrossAxisAlignment.CENTER,
     @LikelyNamed gap: Size? = null,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = stack(Stacked.Row, mainAxisAlignment, crossAxisAlignment, null, gap, body)
 
 /**
@@ -233,11 +237,12 @@ fun row(
  * @return the new [Stacked] node
  * @wiki stacks
  */
+@QFunction
 fun column(
     @Name("alignment") mainAxisAlignment: Stacked.MainAxisAlignment = Stacked.MainAxisAlignment.START,
     @Name("cross") crossAxisAlignment: Stacked.CrossAxisAlignment = Stacked.CrossAxisAlignment.CENTER,
     @LikelyNamed gap: Size? = null,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = stack(Stacked.Column, mainAxisAlignment, crossAxisAlignment, gap, null, body)
 
 /**
@@ -256,6 +261,7 @@ fun column(
  * @throws IllegalArgumentException if [columnCount] is non-positive
  * @wiki stacks
  */
+@QFunction
 fun grid(
     @Name("columns") columnCount: Int,
     @Name("alignment") mainAxisAlignment: Stacked.MainAxisAlignment = Stacked.MainAxisAlignment.CENTER,
@@ -263,10 +269,22 @@ fun grid(
     @LikelyNamed gap: Size? = null,
     @Name("vgap") rowGap: Size? = gap,
     @Name("hgap") columnGap: Size? = gap,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = when {
-    columnCount <= 0 -> throw IllegalArgumentException("Column count must be at least 1")
-    else -> stack(Stacked.Grid(columnCount), mainAxisAlignment, crossAxisAlignment, rowGap ?: gap, columnGap ?: gap, body)
+    columnCount <= 0 -> {
+        throw IllegalArgumentException("Column count must be at least 1")
+    }
+
+    else -> {
+        stack(
+            Stacked.Grid(columnCount),
+            mainAxisAlignment,
+            crossAxisAlignment,
+            rowGap ?: gap,
+            columnGap ?: gap,
+            body,
+        )
+    }
 }
 
 /**
@@ -278,8 +296,9 @@ fun grid(
  * @return the new [Landscape] node
  * @wiki landscape-content
  */
+@QFunction
 fun landscape(
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = Landscape(body.children).wrappedAsValue()
 
 /**
@@ -292,9 +311,10 @@ fun landscape(
  * @return the new [Container] node with [Container.fullColumnSpan] enabled
  * @wiki multi-column-layout
  */
+@QFunction
 @Name("fullspan")
 fun fullColumnSpan(
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = container(fullColumnSpan = true, body = body)
 
 /**
@@ -307,6 +327,7 @@ fun fullColumnSpan(
  * @param height height of the square. If unset, it defaults to zero
  * @return the new [Whitespace] node
  */
+@QFunction
 fun whitespace(
     @LikelyNamed width: Size? = null,
     @LikelyNamed height: Size? = null,
@@ -320,9 +341,10 @@ fun whitespace(
  * @return the new [Clipped] block
  * @wiki clip
  */
+@QFunction
 fun clip(
     clip: Clipped.Clip,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = Clipped(clip, body.children).wrappedAsValue()
 
 /**
@@ -339,6 +361,7 @@ fun clip(
  * @return the new [Box] node
  * @wiki box
  */
+@QFunction
 fun box(
     @Injected context: Context,
     title: InlineMarkdownContent? = null,
@@ -346,7 +369,7 @@ fun box(
     @LikelyNamed padding: Size? = null,
     @Name("background") backgroundColor: Color? = null,
     @Name("foreground") foregroundColor: Color? = null,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ): NodeValue {
     // Localizes the title according to the box type,
     // if the title is not manually set.
@@ -373,6 +396,7 @@ fun box(
  * @param body content to show in the box
  * @return the new box node
  */
+@QFunction
 @Name("todo")
 fun toDo(
     @Injected context: Context,
@@ -397,10 +421,11 @@ fun toDo(
  * @return the new [Collapse] node
  * @wiki collapsible
  */
+@QFunction
 fun collapse(
     title: InlineMarkdownContent,
     @LikelyNamed open: Boolean = false,
-    @LikelyBody body: MarkdownContent,
+    @Body body: MarkdownContent,
 ) = Collapse(title.children, open, body.children).wrappedAsValue()
 
 /**
@@ -412,6 +437,7 @@ fun collapse(
  * @return the new [InlineCollapse] node
  * @wiki collapsible
  */
+@QFunction
 @Name("textcollapse")
 fun inlineCollapse(
     @LikelyNamed full: InlineMarkdownContent,
@@ -443,10 +469,11 @@ fun inlineCollapse(
  * @return the new [Numbered] node
  * @wiki numbering
  */
+@QFunction
 fun numbered(
     @LikelyNamed key: String,
     @Name("ref") referenceId: String? = null,
-    @LikelyBody body: Lambda,
+    @Body body: Lambda,
 ): NodeValue {
     val node =
         Numbered(
@@ -478,9 +505,10 @@ fun numbered(
  * @return a new [Table] node
  * @wiki table-generation
  */
+@QFunction
 fun table(
     @Injected context: Context,
-    @LikelyBody subTables: Iterable<Value<String>>,
+    @Body subTables: Iterable<Value<String>>,
 ): NodeValue {
     val columns =
         subTables

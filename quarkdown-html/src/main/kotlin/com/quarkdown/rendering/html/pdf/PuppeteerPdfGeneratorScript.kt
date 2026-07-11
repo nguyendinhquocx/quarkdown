@@ -49,6 +49,8 @@ class PuppeteerPdfGeneratorScript(
                 try {
                     runScript()
                     Log.info("PDF generated successfully.")
+                } catch (e: InterruptedException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.error("Failed to export PDF: ${e.message}")
                     Log.debug(e)

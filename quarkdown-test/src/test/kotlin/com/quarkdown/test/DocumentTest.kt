@@ -3,7 +3,7 @@ package com.quarkdown.test
 import com.quarkdown.core.ast.AstRoot
 import com.quarkdown.core.ast.attributes.presence.hasCode
 import com.quarkdown.core.ast.attributes.presence.hasMath
-import com.quarkdown.core.ast.quarkdown.block.Container
+import com.quarkdown.core.ast.attributes.style.NodeStyle
 import com.quarkdown.core.context.options.HtmlOptions
 import com.quarkdown.core.document.DocumentAuthor
 import com.quarkdown.core.document.DocumentType
@@ -13,8 +13,6 @@ import com.quarkdown.core.document.size.Size
 import com.quarkdown.core.document.size.Sizes
 import com.quarkdown.core.misc.color.NamedColor
 import com.quarkdown.core.pipeline.error.BasePipelineErrorHandler
-import com.quarkdown.stdlib.pageFormat
-import com.quarkdown.stdlib.paragraphStyle
 import com.quarkdown.test.util.execute
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -68,7 +66,7 @@ class DocumentTest {
             .doctype {slides}
             .doclang {english}
             .theme {darko} layout:{minimal}
-            .pageformat size:{A3} orientation:{landscape} margin:{3cm 2px} bordercolor:{green} columns:{4} alignment:{end}
+            .pageformat size:{A3} orientation:{landscape} margin:{3cm 2px} bordercolor:{green} background:{red} columns:{4} alignment:{end}
             .paragraphstyle lineheight:{2.0} spacing:{1.5} indent:{2}
             .slides transition:{zoom} speed:{fast}
             .autopagebreak maxdepth:{3}
@@ -107,8 +105,9 @@ class DocumentTest {
 
             assertNull(pageFormat.contentBorderWidth)
             assertEquals(NamedColor.GREEN.color, pageFormat.contentBorderColor)
+            assertEquals(NamedColor.RED.color, pageFormat.backgroundColor)
             assertEquals(4, pageFormat.columnCount)
-            assertEquals(Container.TextAlignment.END, pageFormat.alignment)
+            assertEquals(NodeStyle.TextAlignment.END, pageFormat.alignment)
 
             assertEquals(2.0, documentInfo.layout.paragraphStyle.lineHeight)
             assertEquals(1.5, documentInfo.layout.paragraphStyle.spacing)
@@ -164,7 +163,7 @@ class DocumentTest {
         ) {
             assertEquals(
                 "<p>My Quarkdown document " +
-                    "<span class=\"size-tiny\">My Quarkdown document</span>.</p>" +
+                    "<span style=\"font-size: var(--qd-size-tiny, 1em);\">My Quarkdown document</span>.</p>" +
                     "<p>A comprehensive guide to Quarkdown</p>" +
                     "<table>" +
                     "<thead><tr><th>Key</th><th>Value</th></tr></thead>" +
@@ -195,10 +194,36 @@ class DocumentTest {
     }
 
     @Test
+    fun `html options title`() {
+        execute(
+            """
+            .docname {Doc name}
+            .htmloptions title:{Custom title}
+            """.trimIndent(),
+        ) {
+            assertEquals("Custom title", options.html.title)
+            assertEquals("Doc name", documentInfo.name)
+        }
+    }
+
+    @Test
     fun `html options default`() {
         execute("") {
             assertEquals(HtmlOptions(), options.html)
             assertNull(options.html.baseUrl)
+            assertNull(options.html.title)
+        }
+    }
+
+    @Test
+    fun `html options merging`() {
+        execute(
+            """
+            .htmloptions baseurl:{https://example.com} title:{Custom title}
+            .htmloptions title:{Overridden title}
+            """.trimIndent(),
+        ) {
+            assertEquals(HtmlOptions(baseUrl = "https://example.com", title = "Overridden title"), options.html)
         }
     }
 

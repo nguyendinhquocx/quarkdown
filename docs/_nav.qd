@@ -1,5 +1,6 @@
 ###! Getting started
 - [Quickstart](quickstart.qd)
+- [AI agent skill](agent-skill.qd)
 - [CLI options](cli-options.qd)
 
 ###! Documentation
@@ -11,6 +12,7 @@
   - [Chaining calls](syntax-of-a-function-call.qd#chaining-calls)
   - [Block vs. inline calls](syntax-of-a-function-call.qd#block-vs-inline-function-calls)
 - [Declaring functions](declaring-functions.qd)
+- [Extending functions](extending-functions.qd)
 - [Dynamic typing](typing.qd)
 - [Localization](localization.qd)
 
@@ -54,6 +56,7 @@
 ###! Layout
 - [Stacks: rows, columns, grids](stacks.qd)
 - [Container](container.qd)
+- [Element styling](element-styling.qd)
 - [Align](align.qd)
 - [Float](float.qd)
 - [Figure](custom-figure.qd)
@@ -84,12 +87,14 @@
 - [Table generation](table-generation.qd)
 - [Text content from file](file-data.qd#file-text-content)
 - [Table from CSV data](file-data.qd#table-from-csv)
+- [Listing files](listing-files.qd)
 
 ###! Charts & diagrams
 - [XY chart](xy-chart.qd)
 - [Mermaid diagrams](mermaid-diagrams.qd)
 
 ###! Text & code
+- [Regex-based styling](regex-match.qd)
 - [Advanced text formatting](text.qd)
 - [Advanced code block](code.qd)
 - [Explicit line breaks](line-breaks.qd)
@@ -125,6 +130,9 @@
 - [Docs: documentation projects](docs-library.qd)
 - [Paper: abstract, definitions, theorems](paper-library.qd)
 
+###! Process
+- [Environment variables](environment.qd)
+
 ###! Resources & logging
 - [Media storage](media-storage.qd)
 - [Logging](logging.qd)
@@ -134,12 +142,14 @@
 - [Exporting to PDF](pdf-export.qd)
 - [Project creator](cli-project-creator.qd)
 - [Webserver](cli-webserver.qd)
+- [Doctor](cli-doctor.qd)
 
 ###! Inside Quarkdown
 - [Quarkdown's pipeline](pipeline.qd)
   - [Lexing](pipeline---lexing.qd)
   - [Parsing](pipeline---parsing.qd)
   - [Function call expansion](pipeline---function-call-expansion.qd)
+  - [Tree rewrite](pipeline---tree-rewrite.qd)
   - [Tree traversal](pipeline---tree-traversal.qd)
   - [Rendering](pipeline---rendering.qd)
   - [Post-rendering](pipeline---post-rendering.qd)

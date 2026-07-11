@@ -1,8 +1,10 @@
 package com.quarkdown.cli
 
+import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.testing.CliktCommandTestResult
 import com.github.ajalt.clikt.testing.test
 import com.quarkdown.cli.exec.CompileCommand
+import com.quarkdown.core.TIMEOUT_EXIT_CODE
 import com.quarkdown.core.permissions.Permission
 import com.quarkdown.core.pipeline.PipelineOptions
 import com.quarkdown.core.pipeline.error.BasePipelineErrorHandler
@@ -107,6 +109,7 @@ class CompileCommandTest : TempDirectory() {
             assertFalse(it.prettyOutput)
             assertTrue(it.wrapOutput)
             assertTrue(it.enableMediaStorage)
+            assertFalse(it.forbidFunctionOverwriting)
             assertIs<BasePipelineErrorHandler>(it.errorHandler)
         }
     }
@@ -152,6 +155,28 @@ class CompileCommandTest : TempDirectory() {
     }
 
     @Test
+    fun `clean refuses output directory containing source file`() {
+        val sibling = File(directory, "neighbor.txt").apply { writeText("important") }
+        val result =
+            CompileCommand().test(
+                main.absolutePath,
+                "-o",
+                directory.absolutePath,
+                "--clean",
+            )
+        assertEquals(1, result.statusCode)
+        assertTrue(result.stderr.contains("Refusing to clean"), result.stderr)
+        assertTrue(main.exists(), "Source file must not be deleted")
+        assertTrue(sibling.exists(), "Sibling files must not be deleted")
+    }
+
+    @Test
+    fun `forbid function overwriting`() {
+        val (_, pipelineOptions) = test("--forbid-function-overwriting")
+        assertTrue(pipelineOptions.forbidFunctionOverwriting)
+    }
+
+    @Test
     fun `default permissions`() {
         val (_, pipelineOptions) = test()
         assertEquals(Permission.DEFAULT_SET, pipelineOptions.permissions)
@@ -188,6 +213,18 @@ class CompileCommandTest : TempDirectory() {
     fun `deny all`() {
         val (_, pipelineOptions) = test("--deny", "all")
         assertTrue(pipelineOptions.permissions.isEmpty())
+    }
+
+    @Test
+    fun `allow process`() {
+        val (_, pipelineOptions) = test("--allow", "process")
+        assertEquals(Permission.DEFAULT_SET + Permission.ProcessAccess, pipelineOptions.permissions)
+    }
+
+    @Test
+    fun `deny process`() {
+        val (_, pipelineOptions) = test("--allow", "all", "--deny", "process")
+        assertEquals(Permission.ALL - Permission.ProcessAccess, pipelineOptions.permissions)
     }
 
     @Test
@@ -402,6 +439,81 @@ class CompileCommandTest : TempDirectory() {
                 NpmWrapper.defaultPath,
             )
         checkPdf()
+    }
+
+    @Test
+    fun `timeout does not fire for faster compilation`() {
+        val cmd = CompileCommand()
+        cmd.parse(
+            arrayOf(
+                main.absolutePath,
+                "-o",
+                outputDirectory.absolutePath,
+                "--timeout",
+                "20",
+            ),
+        )
+        assertHtmlContentPresent()
+    }
+
+    @Test
+    fun `timeout disabled with zero`() {
+        val cmd = CompileCommand()
+        cmd.parse(
+            arrayOf(
+                main.absolutePath,
+                "-o",
+                outputDirectory.absolutePath,
+                "--timeout",
+                "0",
+            ),
+        )
+        assertHtmlContentPresent()
+    }
+
+    // #469
+    @Test
+    fun `timeout aborts pdf generation`() {
+        assumePdfEnvironmentInstalled()
+
+        val cmd = CompileCommand()
+        val result =
+            cmd.test(
+                main.absolutePath,
+                "-o",
+                outputDirectory.absolutePath,
+                "--pdf",
+                "--pdf-no-sandbox",
+                "--timeout",
+                "1",
+            )
+
+        assertEquals(TIMEOUT_EXIT_CODE, result.statusCode)
+    }
+
+    @Test
+    fun `timeout aborts long-running execution`() {
+        // A source with a computation that exceeds a 1-second timeout.
+        val heavySource = File(directory, "heavy.qd")
+        heavySource.writeText(
+            """
+            .repeat {500}
+                .repeat {500}
+                    Hello
+            """.trimIndent(),
+        )
+
+        val cmd = CompileCommand()
+        val result =
+            cmd.test(
+                heavySource.absolutePath,
+                "-o",
+                outputDirectory.absolutePath,
+                "--timeout",
+                "1",
+            )
+
+        assertEquals(TIMEOUT_EXIT_CODE, result.statusCode)
     }
 
     /**

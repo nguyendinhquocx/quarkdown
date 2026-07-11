@@ -23,6 +23,7 @@ import java.io.File
  * This doesn't take effect with the base Markdown flavor,
  * as the media architecture is defined by Quarkdown through a [com.quarkdown.core.context.hooks.MediaStorerHook].
  * If this is disabled, [MediaStorageOptions] are ignored.
+ * @param forbidFunctionOverwriting whether defining a function with an existing name should raise an error, rather than overwriting the previous function definition.
  * @param subdocumentNaming the strategy used to determine subdocument output file names
  * @param isPreview whether the pipeline is running in preview mode, which may suppress certain post-rendering steps, such as HTML sitemap generation
  * @param permissions the set of permissions granted to this pipeline, controlling access to file system, network, and other resources
@@ -37,10 +38,18 @@ data class PipelineOptions(
     val wrapOutput: Boolean = true,
     val workingDirectory: File? = null,
     val enableMediaStorage: Boolean = true,
+    val forbidFunctionOverwriting: Boolean = false,
     val subdocumentNaming: SubdocumentOutputNaming = SubdocumentOutputNaming.FILE_NAME,
     val isPreview: Boolean = false,
     val serverPort: Int? = null,
     val permissions: Set<Permission> = Permission.DEFAULT_SET,
     val mediaStorageOptionsOverrides: MediaStorageOptions = ReadOnlyMediaStorageOptions(),
     val errorHandler: PipelineErrorHandler = BasePipelineErrorHandler(),
-)
+) {
+    /**
+     * Whether to symlink or copy dependency files from the installation layout,
+     * such as third-party JavaScript libraries.
+     */
+    val symlinkDependencies: Boolean
+        get() = this.isPreview
+}

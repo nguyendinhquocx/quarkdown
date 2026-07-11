@@ -1,28 +1,44 @@
 package com.quarkdown.cli.exec
 
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
+import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.restrictTo
 import com.quarkdown.cli.CliOptions
 import com.quarkdown.cli.exec.strategy.FileExecutionStrategy
-import com.quarkdown.cli.server.WebServerOptions
+import com.quarkdown.cli.preview.PreviewStrategy
+import com.quarkdown.cli.preview.WebServerPreviewStrategy
 import com.quarkdown.cli.server.browserLauncherOption
 import com.quarkdown.cli.util.MillisStopwatch
 import com.quarkdown.core.log.Log
 import com.quarkdown.core.pipeline.PipelineOptions
 import com.quarkdown.interaction.Env
-import com.quarkdown.server.ServerEndpoints
 import com.quarkdown.server.browser.BrowserLauncher
 import com.quarkdown.server.browser.DefaultBrowserLauncher
-import com.quarkdown.server.message.ServerMessageSession
 import java.io.File
 
 /**
- * Command to compile a Quarkdown file into an output.
- * @see FileExecutionStrategy
+ * Default execution timeout in seconds.
  */
-class CompileCommand : ExecuteCommand("compile") {
+private const val DEFAULT_TIMEOUT_SECONDS = 30
+
+/**
+ * Command to compile a Quarkdown file into an output.
+ * @param previewStrategyProvider factory invoked once to produce the [PreviewStrategy] used after each successful
+ *                                compile when preview mode is enabled.
+ */
+class CompileCommand(
+    previewStrategyProvider: CompileCommand.() -> PreviewStrategy = {
+        WebServerPreviewStrategy(
+            port = serverPort,
+            browser = browser,
+            preferLivePreviewUrl = preview && watch,
+        )
+    },
+) : ExecuteCommand("compile") {
     /**
      * Quarkdown source file to process.
      */
@@ -47,6 +63,16 @@ class CompileCommand : ExecuteCommand("compile") {
     ).flag()
 
     /**
+     * Maximum time, in seconds, allowed for the entire execution (pipeline + export) to complete.
+     * `0` disables the timeout. Defaults to [DEFAULT_TIMEOUT_SECONDS].
+     */
+    override val timeoutSeconds: Int by option(
+        "--timeout",
+        help = "Maximum execution time in seconds. 0 disables it. Defaults to $DEFAULT_TIMEOUT_SECONDS.",
+        metavar = "SECONDS",
+    ).int().restrictTo(min = 0).default(DEFAULT_TIMEOUT_SECONDS)
+
+    /**
      * When enabled, the rendered content (NOT post-rendered) is printed to stdout and nothing else is logged,
      * suitable for piping the output to other commands.
      */
@@ -60,15 +86,7 @@ class CompileCommand : ExecuteCommand("compile") {
         shouldValidate = { preview },
     )
 
-    /**
-     * Session to communicate with the server in order to trigger reloads of the preview.
-     */
-    private val reloadSession: ServerMessageSession by lazy {
-        ServerMessageSession(
-            port = super.serverPort,
-            endpoint = ServerEndpoints.RELOAD_LIVE_PREVIEW,
-        )
-    }
+    private val previewStrategy: PreviewStrategy by lazy { previewStrategyProvider() }
 
     /**
      * Finalizes the CLI options before execution.
@@ -88,7 +106,8 @@ class CompileCommand : ExecuteCommand("compile") {
     /**
      * Stopwatch to measure the duration of the compilation.
      */
-    @get:Synchronized @set:Synchronized
+    @get:Synchronized
+    @set:Synchronized
     private lateinit var stopwatch: MillisStopwatch
 
     override fun createExecutionStrategy(cliOptions: CliOptions) = FileExecutionStrategy(source)
@@ -127,22 +146,7 @@ class CompileCommand : ExecuteCommand("compile") {
         this.logCompletion(output = outcome.directory)
 
         if (super.preview) {
-            runServerCommunication(outcome.directory)
+            this.previewStrategy.update(pipelineOptions, outcome)
         }
-    }
-
-    private fun runServerCommunication(directory: File) {
-        // Communicates with the server to reload the requested resources.
-        // If enabled and the server is not running, also starts the server
-        // (this is shorthand for `quarkdown start -f <generated directory> -p <server port> -b default`).
-        runServerCommunication(
-            WebServerOptions(
-                port = super.serverPort,
-                targetFile = directory,
-                browserLauncher = browser,
-                preferLivePreviewUrl = super.preview && super.watch,
-            ),
-            reloadSession,
-        )
     }
 }

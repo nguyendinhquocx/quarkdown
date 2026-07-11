@@ -57,7 +57,7 @@ interface Context : PermissionHolder {
     /**
      * Loaded libraries to look up functions from.
      */
-    val libraries: Set<Library>
+    val libraries: List<Library>
 
     /**
      * External libraries that can be loaded by the user into [libraries].
@@ -108,6 +108,18 @@ interface Context : PermissionHolder {
      * @return the corresponding function, if it exists
      */
     fun getFunctionByName(name: String): Function<*>?
+
+    /**
+     * Whether a function with [name] has been wrapped via an `.extend` call visible from this context.
+     * Used for optimization of [com.quarkdown.core.ast.attributes.primitive.PrimitiveFunctionBackedNode].
+     */
+    fun isFunctionExtended(name: String): Boolean
+
+    /**
+     * Whether any function has been wrapped via an `.extend` call visible from this context.
+     * Used for optimization of [com.quarkdown.core.ast.attributes.primitive.PrimitiveFunctionBackedNode].
+     */
+    fun hasFunctionsExtended(): Boolean
 
     /**
      * @param call function call node to get a function call from

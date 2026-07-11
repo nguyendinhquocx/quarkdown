@@ -103,10 +103,12 @@ nb-configuration.xml
 ## Quarkdown
 ##############################
 /**/quarkdown-output/
+/**/output/preview-*
 
 ##############################
 ## Miscellaneous
 ##############################
-.claude/
+.claude/*
+!.claude/skills/
 *.log
 **/_test/
