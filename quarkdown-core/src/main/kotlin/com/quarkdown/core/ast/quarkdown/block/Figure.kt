@@ -7,9 +7,11 @@ import com.quarkdown.core.ast.SingleChildNestableNode
 import com.quarkdown.core.ast.attributes.localization.LocalizedKind
 import com.quarkdown.core.ast.attributes.localization.LocalizedKindKeys
 import com.quarkdown.core.ast.attributes.location.LocationTrackableNode
+import com.quarkdown.core.ast.attributes.primitive.PrimitiveFunctionBackedNode
 import com.quarkdown.core.ast.base.inline.Image
 import com.quarkdown.core.ast.quarkdown.CaptionableNode
 import com.quarkdown.core.ast.quarkdown.reference.CrossReferenceableNode
+import com.quarkdown.core.function.dsl.functionCallArguments
 import com.quarkdown.core.util.node.group
 import com.quarkdown.core.visitor.node.NodeVisitor
 
@@ -29,7 +31,8 @@ open class Figure<T : Node>(
     LocationTrackableNode,
     CrossReferenceableNode,
     CaptionableNode,
-    LocalizedKind {
+    LocalizedKind,
+    PrimitiveFunctionBackedNode {
     override val children: List<Node>
         get() = listOf(child, caption.group())
 
@@ -41,6 +44,16 @@ open class Figure<T : Node>(
      */
     override val canTrackLocation: Boolean
         get() = caption != null || referenceId != null
+
+    override val backingFunctionName: String
+        get() = "figure"
+
+    override fun toFunctionCallArguments() =
+        functionCallArguments {
+            arg("caption", inline(caption))
+            arg("ref", string(referenceId))
+            arg("body", block(child))
+        }
 
     override fun <T> accept(visitor: NodeVisitor<T>): T = visitor.visit(this)
 }

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+Quarkdown 2.4 is one of the most impactful releases in the history of the project, introducing a new system for extending Markdown elements behavior and styling.
+You can read in detail about this powerful feature in its [blog post](https://quarkdown.com/blog/quarkdown-2-4).
+
 ### Added
 
 &nbsp;
@@ -24,19 +27,19 @@ This is one of the biggest milestones for Quarkdown, on par with Typst's `#show`
 ## A heading <!-- Renders blue and italic -->
 ```
 
-This release ships with a handful of primitives as an experimental feature. The plan is to eventually have every Markdown element type backed by a primitive function.
+This release ships with a handful of primitives as an experimental feature: headings, paragraphs, links, figures, images, math, page breaks. The plan is to eventually have every Markdown element type backed by a primitive function.
 
 &nbsp;
 
-#### [New primitive: `.paragraph`]
+#### [New primitives: `.paragraph`, `.math`, `.link`](https://quarkdown.com/wiki/primitives)
 
-The new `.paragraph` primitive backs Markdown paragraphs, enabling paragraph-level extensions via `.extend {paragraph}`.
+The new `.paragraph` primitive backs Markdown paragraphs, `.math` backs `$`-delimited math blocks, and `.link` backs Markdown links, enabling extensions via `.extend`.
 
 &nbsp;
 
-#### [Full styling options on `.heading` and `.paragraph`](https://quarkdown.com/wiki/element-styling-properties)
+#### [Full styling options on `.heading`, `.paragraph`, `.math` and `.link`](https://quarkdown.com/wiki/element-styling-properties)
 
-`.container`'s styling options, such as `foreground`, `background`, `border`, `padding`, and `fontsize`, are now available on `.heading` and `.paragraph` as well. This allows for full customization without needing to wrap the element in a container.
+`.container`'s styling options, such as `foreground`, `background`, `border`, `padding`, and `fontsize`, are now available on `.heading`, `.paragraph`, `.math` and `.link` as well. This allows for full customization without needing to wrap the element in a container.
 
 ```markdown
 .heading {Introduction} depth:{1} background:{blue} radius:{8px}
@@ -56,9 +59,20 @@ This plays particularly well with the new primitive extension system:
 
 `.extend`'s new `where` parameter defines a condition to meet. If not met, the behavior falls back to the original function definition.
 
+The following snippet applies a teal background to all headings of depth 1 and 2, while leaving deeper headings unchanged:
+
 ```markdown
 .extend {heading} where:{depth: .depth::islower than:{3}}
     .super background:{teal}
+```
+
+The following snippet adds an icon to all external links:
+
+```markdown
+.extend {link} where:{url: .url::startswith {https://quarkdown.com}::not}
+    content:
+    .super
+        .content .icon {box-arrow-up-right}
 ```
 
 &nbsp;
@@ -79,13 +93,13 @@ Output:
 This is particularly useful for element styling:
 
 ```markdown
-.extend {heading}
+.extend {paragraph}
     content:
     .super
         .content::match {[Qq]uark(down|s)?}
-            *.1*
+            **.1**
 
-## Quarkdown takes its name from quarks
+Quarkdown takes its name from quarks
 ```
 
 &nbsp;
