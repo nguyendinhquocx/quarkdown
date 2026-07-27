@@ -2,9 +2,9 @@
 
 ## [Unreleased]
 
-### Added
+## [2.4.1] - 2026-07-26
 
-&nbsp;
+### Added
 
 #### [`em` size units](https://quarkdown.com/wiki/sizes)
 
@@ -12,11 +12,7 @@ Size values now support the font-relative `em` unit, including decimal values su
 
 Thanks @arpitagarwal1301!
 
-&nbsp;
-
 ### Fixed
-
-&nbsp;
 
 #### Inline replacement lambdas accept nested function calls
 
@@ -26,8 +22,6 @@ Node-returning function calls, such as `.text`, can now be used in `.match` and 
 .match {Quarkdown takes its name from quarks} pattern:{[Qq]uark(down|s)?}
     .1::text color:{purple} decoration:{underline}
 ```
-
-&nbsp;
 
 #### Chained `.extend` composes in declaration order
 
@@ -45,8 +39,6 @@ Multiple extensions on the same function now stack in the correct LIFO declarati
 
 ## Heading
 ```
-
-&nbsp;
 
 #### `.match` in chained extensions sees content correctly
 
@@ -66,13 +58,15 @@ Fixed the ability to chain multiple `.match` calls onto the same content:
             .1::text color:{red}
 ```
 
-&nbsp;
-
 #### Fixed empty pages on CSS declarations
 
 Fixed an issue that caused `.css` and `.cssproperties` to produce empty pages in `paged` documents when the declaration was before an H1.
 
 Thanks @arpitagarwal1301!
+
+#### Backslashes allowed in [all-in-one footnotes](https://quarkdown.com/wiki/footnotes)
+
+Escape sequences and any content containing a backslash, such as math expressions, are now recognized inside the `[^label: ...]` form of footnote definitions.
 
 ## [2.4.0] - 2026-07-13
 
@@ -80,8 +74,6 @@ Quarkdown 2.4 is one of the most impactful releases in the history of the projec
 You can read in detail about this powerful feature in its [blog post](https://quarkdown.com/blog/quarkdown-2-4).
 
 ### Added
-
- 
 
 #### [Element styling](https://quarkdown.com/wiki/element-styling) (show-rules)
 
@@ -103,13 +95,9 @@ This is one of the biggest milestones for Quarkdown, on par with Typst's `#show`
 
 This release ships with a handful of primitives as an experimental feature: headings, paragraphs, links, figures, images, math, page breaks. The plan is to eventually have every Markdown element type backed by a primitive function.
 
- 
-
 #### [New primitives: `.paragraph`, `.math`, `.link`](https://quarkdown.com/wiki/primitives)
 
 The new `.paragraph` primitive backs Markdown paragraphs, `.math` backs `$`-delimited math blocks, and `.link` backs Markdown links, enabling extensions via `.extend`.
-
- 
 
 #### [Full styling options on `.heading`, `.paragraph`, `.math` and `.link`](https://quarkdown.com/wiki/element-styling-properties)
 
@@ -126,8 +114,6 @@ This plays particularly well with the new primitive extension system:
     content:
     .super background:{red} foreground:{white} padding:{10px}
 ```
-
- 
 
 #### [Conditional `.extend`](https://quarkdown.com/wiki/extending-functions)
 
@@ -148,8 +134,6 @@ The following snippet adds an icon to all external links:
     .super
         .content .icon {box-arrow-up-right}
 ```
-
- 
 
 #### [Regex match](https://quarkdown.com/wiki/regex-match)
 
@@ -176,11 +160,7 @@ This is particularly useful for element styling:
 Quarkdown takes its name from quarks
 ```
 
- 
-
 ### Changed
-
- 
 
 #### [Inline lambdas without `@lambda`](https://quarkdown.com/wiki/lambda#inline-lambda)
 
@@ -199,8 +179,6 @@ Inline lambdas passed as arguments no longer require the `@lambda` prefix. When 
 ````
 
 The `@lambda` prefix is still accepted for backward compatibility with older documents.
-
- 
 
 #### [Body argument binding](https://quarkdown.com/wiki/syntax-of-a-function-call#block-vs-inline-function-calls)
 
@@ -224,8 +202,6 @@ Inline binding keeps working as before, so the following is still valid:
 #### Optimized argument binding
 
 Parameter lookup now performs a single pass over the arguments, improving performance.
-
- 
 
 #### Body arguments for inline function calls
 
@@ -1223,7 +1199,9 @@ Table of contents are no longer empty if no level 1 headings are present, or if 
 
 Table cells now correctly apply the same line spacing as paragraphs and lists.
 
-[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.4.1...HEAD
+
+[2.4.1]: https://github.com/iamgio/quarkdown/compare/v2.4.0...v2.4.1
 
 [2.4.0]: https://github.com/iamgio/quarkdown/compare/v2.3.1...v2.4.0
 

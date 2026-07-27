@@ -27,14 +27,12 @@ jobs:
         full-checkout: true
         checkout-token: ${{ secrets.COMMITTER_TOKEN }}
 
-    # Writes the new version (tag name without the leading 'v') to version.txt
-    - name: Bump version
+    # Bumps version.txt and updates CHANGELOG.md so the following build embeds
+    # the release version, then commits both files back to main. The rest of the
+    # release publishing happens after the build in the second simple-release step below.
+    - name: Prepare release
       if: github.ref_type == 'tag'
-      run: printf "%s" "${GITHUB_REF_NAME#v}" > version.txt
-
-    - name: Update changelog
-      uses: thomaseizinger/keep-a-changelog-new-release@v2
-      if: github.ref_type == 'tag'
+      uses: iamgio/simple-release@v1
       with:
         tag: ${{ github.ref_name }}
 
@@ -81,14 +79,10 @@ jobs:
         name: quarkdown
         path: build/distributions/quarkdown.zip
 
-    - name: Move devbuild tag to latest commit
-      run: |
-        git tag -d latest || true
-        git tag -f latest
-        git push origin +latest
-
-    - name: Create devbuild release
-      uses: softprops/action-gh-release@v2.2.2
+    # Moves the rolling `latest` tag, publishes a devbuild prerelease,
+    # and on tag publishes the tagged release.
+    - name: Publish devbuild and release
+      uses: iamgio/simple-release@v1
       with:
         token: "${{ secrets.GITHUB_TOKEN }}"
         tag_name: "latest"
