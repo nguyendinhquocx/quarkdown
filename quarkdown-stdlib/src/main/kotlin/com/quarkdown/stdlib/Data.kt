@@ -16,6 +16,7 @@ import com.quarkdown.core.function.reflect.annotation.LikelyNamed
 import com.quarkdown.core.function.value.IterableValue
 import com.quarkdown.core.function.value.NodeValue
 import com.quarkdown.core.function.value.OrderedCollectionValue
+import com.quarkdown.core.function.value.OutputValue
 import com.quarkdown.core.function.value.StringValue
 import com.quarkdown.core.function.value.UnorderedCollectionValue
 import com.quarkdown.core.function.value.data.Range
@@ -29,9 +30,11 @@ import com.quarkdown.processor.annotation.Name
 import com.quarkdown.processor.annotation.QFunction
 import com.quarkdown.processor.annotation.QModule
 import com.quarkdown.stdlib.internal.AlphanumericComparator
+import com.quarkdown.stdlib.internal.JsonValueDeserializer
 import com.quarkdown.stdlib.internal.Ordering
 import com.quarkdown.stdlib.internal.Sorting
 import com.quarkdown.stdlib.internal.sortedBy
+import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
@@ -64,7 +67,7 @@ internal fun file(
  * @permission [Permission.ProjectRead] to read files located in the project directory
  * @permission [Permission.GlobalRead] to read files located outside the project directory
  * @throws IllegalArgumentException if [lineRange] is out of bounds
- * @wiki file-data
+ * @wiki file-text-content
  */
 @QFunction
 fun read(
@@ -255,7 +258,7 @@ private fun listFiles(
  * @throws IllegalArgumentException if the file does not exist
  * @permission [Permission.ProjectRead] to access files located in the project directory
  * @permission [Permission.GlobalRead] to access files located outside the project directory
- * @wiki file-data
+ * @wiki file-name
  */
 @QFunction
 @Name("filename")
@@ -284,6 +287,47 @@ enum class CsvParsingMode(
 }
 
 /**
+ * Loads a JSON file and returns its content as a dictionary if it's representing a JSON object,
+ * or as an iterable collection if it's representing a JSON array.
+ *
+ * From a JSON array:
+ *
+ * ```
+ * .json {people.json}::foreach
+ *     .1::get {name} is from .1::get {address}::get {country}
+ * ```
+ *
+ * From a JSON object:
+ *
+ * ```
+ * .json {config.json}::get {database}::get {host}
+ * ```
+ *
+ * Temporary scoping of a JSON object via [let]:
+ *
+ * ```
+ * .json {user.json}::let
+ *     .1::get {name} is .1::get {age} years old
+ * ```
+ *
+ * @param path path of the JSON file (with extension) to load
+ * @return a dictionary or iterable representing the content of the JSON file located in [path]
+ * @throws IllegalArgumentException if the file does not exist or is not a valid JSON file
+ * @permission [Permission.ProjectRead] to read JSON files located in the project directory
+ * @permission [Permission.GlobalRead] to read JSON files located outside the project directory
+ * @wiki data-from-json
+ */
+@QFunction
+fun json(
+    @Injected context: Context,
+    path: String,
+): OutputValue<*> {
+    val file = file(context, path)
+    val jsonObject = Json.parseToJsonElement(file.readText())
+    return JsonValueDeserializer.deserialize(jsonObject)!!
+}
+
+/**
  * Loads a CSV file and returns its content as a display-ready table.
  * @param path path of the CSV file (with extension) to show
  * @param mode mode to handle the content of each cell and header (plain or Markdown)
@@ -292,7 +336,7 @@ enum class CsvParsingMode(
  * @return a table whose content is loaded from the file located in [path]
  * @permission [Permission.ProjectRead] to read CSV files located in the project directory
  * @permission [Permission.GlobalRead] to read CSV files located outside the project directory
- * @wiki file-data
+ * @wiki table-from-csv
  */
 @QFunction
 fun csv(
