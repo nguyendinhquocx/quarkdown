@@ -4,6 +4,19 @@
 
 ### Added
 
+#### [Markdown export](https://quarkdown.com/wiki/cli-options)
+
+Quarkdown documents can now be exported to GitHub Flavored Markdown via the new `--render markdown` or `--render gfm` option, producing `.md` files.
+
+```bash
+quarkdown c document.qd -r markdown
+```
+
+This plays an important role in AEO optimization, as AI agents usually prefer Markdown to HTML. Multi-target compilation allows shipping sites in both formats from the same source.  
+See [SEO & AEO optimization](https://quarkdown.com/wiki/seo-aeo-optimization) for more details.
+
+The new `.markdown` function lets you include raw Markdown content when exporting to Markdown.
+
 #### [Code block primitive](https://quarkdown.com/wiki/primitives)
 
 `.code` is now a [primitive](https://quarkdown.com/wiki/primitives), so it can be intercepted via `.extend {code}` to customize the appearance of every code block in the document.

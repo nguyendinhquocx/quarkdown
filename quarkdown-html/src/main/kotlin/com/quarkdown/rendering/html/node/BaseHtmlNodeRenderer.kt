@@ -1,5 +1,6 @@
 package com.quarkdown.rendering.html.node
 
+import com.quarkdown.core.ast.AstGroup
 import com.quarkdown.core.ast.AstRoot
 import com.quarkdown.core.ast.attributes.id.getId
 import com.quarkdown.core.ast.attributes.reference.getDefinition
@@ -47,6 +48,7 @@ import com.quarkdown.core.ast.quarkdown.block.Container
 import com.quarkdown.core.ast.quarkdown.block.Figure
 import com.quarkdown.core.ast.quarkdown.block.FileTree
 import com.quarkdown.core.ast.quarkdown.block.Landscape
+import com.quarkdown.core.ast.quarkdown.block.Markdown
 import com.quarkdown.core.ast.quarkdown.block.Math
 import com.quarkdown.core.ast.quarkdown.block.MermaidDiagram
 import com.quarkdown.core.ast.quarkdown.block.NavigationContainer
@@ -122,9 +124,14 @@ open class BaseHtmlNodeRenderer(
 
     override fun createMediaPassthroughPrefixReplacement(): String = getPathToRoot()
 
-    // Root
+    // Group
 
     override fun visit(node: AstRoot) =
+        buildMultiTag {
+            +node.children
+        }
+
+    override fun visit(node: AstGroup) =
         buildMultiTag {
             +node.children
         }
@@ -228,6 +235,8 @@ open class BaseHtmlNodeRenderer(
         }
 
     override fun visit(node: Html) = node.content
+
+    override fun visit(node: Markdown) = ""
 
     /**
      * Table tag builder, enhanceable by subclasses.
