@@ -2,11 +2,16 @@
 
 package com.quarkdown.stdlib
 
+import com.quarkdown.core.ast.AstGroup
 import com.quarkdown.core.ast.base.block.Html
+import com.quarkdown.core.ast.quarkdown.block.Markdown
 import com.quarkdown.core.context.Context
 import com.quarkdown.core.context.MutableContext
 import com.quarkdown.core.context.options.HtmlOptions
 import com.quarkdown.core.context.options.merge
+import com.quarkdown.core.document.sub.Subdocument
+import com.quarkdown.core.document.sub.getOutputFileName
+import com.quarkdown.core.function.reflect.annotation.Body
 import com.quarkdown.core.function.reflect.annotation.Injected
 import com.quarkdown.core.function.reflect.annotation.LikelyBody
 import com.quarkdown.core.function.value.NodeValue
@@ -15,6 +20,7 @@ import com.quarkdown.core.function.value.VoidValue
 import com.quarkdown.core.function.value.wrappedAsValue
 import com.quarkdown.core.permissions.Permission
 import com.quarkdown.core.permissions.requirePermission
+import com.quarkdown.core.util.Escape
 import com.quarkdown.processor.annotation.Name
 import com.quarkdown.processor.annotation.QFunction
 import com.quarkdown.processor.annotation.QModule
@@ -157,3 +163,79 @@ fun cssProperties(
         append("}")
     },
 )
+
+/**
+ * Generates an [llms.txt](https://llmstxt.org) index for the site.
+ *
+ * On every page, two directives are emitted:
+ * - A visually hidden HTML paragraph (`<p class="sr-only">`) so agents crawling the HTML can find `llms.txt`.
+ * - A Markdown blockquote, emitted only when the target is Markdown, carrying the same pointer.
+ *
+ * Placing this call in a shared setup file (such as `_setup.qd` in `docs` projects) makes both the
+ * index generation and the per-page directive appear across the whole site.
+ *
+ * Requires [HtmlOptions.baseUrl] to be set via `.htmloptions`, since `llms.txt` must use absolute URLs.
+ *
+ * ```markdown
+ * .llmstxt markdownavailable:{yes}
+ *     My site's short description, used as the summary in llms.txt.
+ * ```
+ *
+ * @param content short summary of the site, used as the blockquote at the top of `llms.txt`
+ * @param isMarkdownMirrorAvailable whether the site also serves a Markdown counterpart for each page.
+ *                            When `true`, the HTML directive also links to this page's raw Markdown counterpart,
+ *                            computed automatically from the current subdocument.
+ * @return a compound node containing both the HTML directive and the Markdown directive
+ * @throws IllegalStateException if [HtmlOptions.baseUrl] is not set via `.htmloptions`
+ * @wiki seo-aeo-optimization
+ */
+@QFunction
+@Name("llmstxt")
+fun llmsTxt(
+    @Injected context: MutableContext,
+    @Body content: String,
+    @Name("markdownavailable") isMarkdownMirrorAvailable: Boolean,
+): NodeValue {
+    val baseUrl =
+        checkNotNull(context.options.html.baseUrl) {
+            "Cannot emit llms.txt directive: base URL is not set via .htmloptions baseurl:{...}"
+        }
+
+    val path = "$baseUrl/llms.txt"
+    val markdownUrl = if (isMarkdownMirrorAvailable) getCurrentPageMarkdownUrl(context) else null
+
+    context.options.html =
+        context.options.html.copy(
+            llmsTxtContent = content.trim(),
+            isMarkdownMirrorAvailable = isMarkdownMirrorAvailable,
+        )
+
+    return AstGroup(
+        listOf(
+            Markdown("> For the complete documentation index, see [llms.txt]($path)."),
+            Html(
+                buildString {
+                    append("<p class=\"sr-only\" data-hidden=\"\">")
+                    append("For the complete documentation index, see <a href=\"$path\">llms.txt</a>.")
+                    if (markdownUrl != null) {
+                        append(" This page is also available as <a href=\"$markdownUrl\">Markdown</a>.")
+                    }
+                    append("</p>")
+                },
+            ),
+        ),
+    ).wrappedAsValue()
+}
+
+/**
+ * Page-relative URL of the current subdocument's Markdown counterpart.
+ * - Root: `index.md` sits next to `index.html`.
+ * - Subdocument: `<name>.md` sits one directory above `<name>/index.html`.
+ */
+private fun getCurrentPageMarkdownUrl(context: Context): String {
+    val name = context.subdocument.getOutputFileName(context).let(Escape.Url::escape)
+    return when (context.subdocument) {
+        Subdocument.Root -> "index.md"
+        else -> "../$name.md"
+    }
+}

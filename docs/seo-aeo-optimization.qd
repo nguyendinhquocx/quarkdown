@@ -18,7 +18,7 @@ This has two effects:
 1. Every generated page gets a `<link rel="canonical">` pointing to its final URL, which helps search engines pick the preferred address for each page.
 2. When the project contains at least one subdocument, Quarkdown emits a `sitemap.xml`, listing every page for crawlers to discover.
 
-> Tip: The base URL should not include a trailing slash and should point to the directory where `index.html` is served from.
+> Tip: The base URL should point to the directory where `index.html` is served from.
 
 ## Robots.txt
 
@@ -49,7 +49,7 @@ By default, every page in a multi-subdocument project shows its own name in sear
 .example
     The HTML title will be *My document*:
     
-    ```
+    ```markdown
     .docname {My document}
     ```
 
@@ -58,7 +58,7 @@ The recommended pattern combines the subdocument's own name with the site name, 
 .example
     The HTML title will be *Subdocument name | My site* for non-root pages:
     
-    ```
+    ```markdown
     .ifnot {.docname::equals {My site}}
         .htmloptions title:{.docname | My site}
     ```
@@ -106,3 +106,26 @@ The second run writes `.md` files alongside the HTML output, so the result is a 
 
 .example
     This very page is readable in Markdown at [/wiki/seo-aeo-optimization.md](/wiki/seo-aeo-optimization.md?).
+
+## Generating `llms.txt`
+
+The [llms.txt convention](https://llmstxt.org) proposes a single Markdown file at the root of a site (`/llms.txt`) that curates the most useful entry points for LLM-based crawlers.
+
+The **`.llmstxt`** function takes care of:
+
+1. Generating the `llms.txt` file at the site root, listing the root document and every subdocument as an absolute link.
+2. On every page, it emits a hidden discoverability directive so agents that land on a rendered page can find `llms.txt`.
+
+Place the call in a shared setup file so both effects apply to every page:
+
+.example
+    > `_setup.qd`
+
+    ```markdown
+    .llmstxt markdownavailable:{yes}
+        A short summary of what this site is about, used as the blockquote at the top of llms.txt.
+    ```
+
+Set `markdownavailable` to `yes` when the site also ships `.md` files (see [Shipping a Markdown copy](#shipping-a-markdown-copy)). In that case, the directive tells agents how to fetch the Markdown version of the current page.
+
+> Note: `llms.txt` uses absolute URLs, so `.llmstxt` requires [`.htmloptions baseurl:{...}`](#base-url) to be set.
