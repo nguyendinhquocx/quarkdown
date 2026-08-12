@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-08-12
+
 ### Changed
 
 #### [dev] Embedding-friendly pipeline error handling
@@ -17,6 +19,14 @@ An inline link `[text](url)` followed immediately by a closing parenthesis no lo
 #### Deeply nested lists with 4-space indentation
 
 Nested lists that use 4 spaces of indentation at every level now render correctly at three or more levels.
+
+#### Subdocument links missing a trailing slash
+
+Links to subdocuments in HTML output now end with a trailing slash, to minimize 404s on hosts that do not redirect to the trailing-slash form. The `<link rel="canonical">` tag, `sitemap.xml`, and the client-side search index now use the same form too.
+
+#### [lsp] Completion crash on out-of-bounds cursor position
+
+The language server no longer crashes when a completion request arrives with a cursor position outside the document bounds.
 
 ## [2.5.0] - 2026-08-04
 
@@ -1265,7 +1275,9 @@ Table of contents are no longer empty if no level 1 headings are present, or if 
 
 Table cells now correctly apply the same line spacing as paragraphs and lists.
 
-[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.5.1...HEAD
+
+[2.5.1]: https://github.com/iamgio/quarkdown/compare/v2.5.0...v2.5.1
 
 [2.5.0]: https://github.com/iamgio/quarkdown/compare/v2.4.1...v2.5.0
 
