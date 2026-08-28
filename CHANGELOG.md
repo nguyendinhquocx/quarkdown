@@ -8,7 +8,19 @@
 
 Calling a native function no longer involves JVM reflection, improving performance (the official wiki now compiles 10% faster) on function-heavy documents and opening the door to future optimizations.
 
+#### Optimized locale lookup
+
+Locale resolution from `.doclang` was optimized, via a compile-time-generated and efficiently indexed table. Improvements include faster lookups, true platform independence, reduced memory usage, and smaller binary size.
+
+Breaking change: calling `.doclang` without a parameter now returns the *English* name of the current locale, rather than its localized name.
+
 ### Fixed
+
+#### Layout themes: bold weight and leaner font artifacts
+
+Fixed an issue that caused bold text in `minimal` and `beamer` themes to be browser-synthesized. It is now correctly and consistently rendered.
+
+Additionally, the two themes now ship smaller font artifacts that reduce the size of both the HTML output and the Quarkdown distribution.
 
 #### [Scoped function extensions](https://quarkdown.com/wiki/extending-functions)
 
