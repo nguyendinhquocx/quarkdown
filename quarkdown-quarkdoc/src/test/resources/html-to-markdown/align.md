@@ -1,5 +1,5 @@
 ```block lang-kotlin
-.align alignment:{Container.Alignment} body:{MarkdownContent} -> Node
+.align alignment:{NodeStyle.Alignment} body:{MarkdownContent} -> Node
 ```
 
 Aligns content and text within its parent.
@@ -12,16 +12,13 @@ the new aligned Container node
 
 * **alignment**
 
-
   content alignment anchor and text alignment
 
   Values
   * `start`
   * `center`
   * `end`
-
 * **body**
-
 
   content to center
 
@@ -29,8 +26,6 @@ the new aligned Container node
 
 * [container](container.html)
 
-  <br />
-
 #### Wiki page
 
-[Align](https://github.com/iamgio/quarkdown/wiki/Align)
+[align](https://quarkdown.com/wiki/align)

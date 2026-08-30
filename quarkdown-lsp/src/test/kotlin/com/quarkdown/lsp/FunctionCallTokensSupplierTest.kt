@@ -4,7 +4,6 @@ import com.quarkdown.core.util.normalizeLineSeparators
 import com.quarkdown.lsp.highlight.SimpleTokenData
 import com.quarkdown.lsp.highlight.TokenType
 import com.quarkdown.lsp.highlight.function.FunctionCallTokensSupplier
-import org.eclipse.lsp4j.SemanticTokensParams
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -32,14 +31,13 @@ private val TYPE_INLINE_ARGUMENT_DELIMITER = TokenType.FUNCTION_CALL_INLINE_ARGU
  */
 class FunctionCallTokensSupplierTest {
     private val supplier = FunctionCallTokensSupplier()
-    private val params = SemanticTokensParams()
 
     private fun tokenize(
         text: String,
         block: Iterator<SimpleTokenData>.() -> Unit = {},
     ): Iterator<SimpleTokenData> =
         supplier
-            .getTokens(params, TextDocument(text))
+            .getTokens(TextDocument(text))
             .iterator()
             .also { tokens ->
                 block(tokens)
@@ -282,6 +280,47 @@ class FunctionCallTokensSupplierTest {
             assertNext(TokenType.ENUM, 30..35)
             assertNext(TYPE_INLINE_ARGUMENT_DELIMITER, 35..36)
             // Note: Body argument content is not tokenized as semantic tokens.
+        }
+    }
+
+    @Test
+    fun `nested function call inside body argument`() {
+        tokenize(
+            """
+            .outer
+              Text .inner param:{yes}
+            """.trimIndent().normalizeLineSeparators().toString(),
+        ) {
+            assertNext(TYPE_BEGIN, 0..1)
+            assertNext(TYPE_NAME, 1..6)
+            assertNext(TYPE_BEGIN, 14..15)
+            assertNext(TYPE_NAME, 15..20)
+            assertNext(TYPE_NAMED_PARAMETER, 21..26)
+            assertNext(TYPE_NAMED_PARAMETER_SEPARATOR, 26..27)
+            assertNext(TYPE_INLINE_ARGUMENT_DELIMITER, 27..28)
+            assertNext(TokenType.BOOLEAN, 28..31)
+            assertNext(TYPE_INLINE_ARGUMENT_DELIMITER, 31..32)
+        }
+    }
+
+    @Test
+    fun `nested function calls in body arguments at multiple depths`() {
+        tokenize(
+            """
+            .outer
+              .middle
+                .leaf {1}
+            """.trimIndent().normalizeLineSeparators().toString(),
+        ) {
+            assertNext(TYPE_BEGIN, 0..1)
+            assertNext(TYPE_NAME, 1..6)
+            assertNext(TYPE_BEGIN, 9..10)
+            assertNext(TYPE_NAME, 10..16)
+            assertNext(TYPE_BEGIN, 21..22)
+            assertNext(TYPE_NAME, 22..26)
+            assertNext(TYPE_INLINE_ARGUMENT_DELIMITER, 27..28)
+            assertNext(TokenType.NUMBER, 28..29)
+            assertNext(TYPE_INLINE_ARGUMENT_DELIMITER, 29..30)
         }
     }
 

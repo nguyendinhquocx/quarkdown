@@ -1,10 +1,11 @@
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization") version "2.3.21"
 }
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("org.jsoup:jsoup:1.22.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 }
 
 tasks.test {
