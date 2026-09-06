@@ -119,6 +119,30 @@ class CslBibliographyStyleTest {
     }
 
     @Test
+    fun `csl apa, bare doi is resolved to an absolute doi url`() {
+        val style = cslStyle("apa")
+        val entry = style.bibliography.entries["baredoi"]!!
+        val content = style.contentOf(entry)
+        val doiLink = content.filterIsInstance<Link>().firstOrNull()
+        assertEquals(
+            "https://doi.org/10.1109/ICRA46639.2022.9812329",
+            doiLink?.url,
+        )
+    }
+
+    @Test
+    fun `csl apa, absolute doi url is kept as-is`() {
+        val style = cslStyle("apa")
+        val entry = style.bibliography.entries["einstein"]!!
+        val content = style.contentOf(entry)
+        val doiLink = content.filterIsInstance<Link>().firstOrNull()
+        assertEquals(
+            "http://dx.doi.org/10.1002/andp.19053221004",
+            doiLink?.url,
+        )
+    }
+
+    @Test
     fun `csl apa, list label is empty`() {
         val style = cslStyle("apa")
         val entry = style.bibliography.entries["einstein"]!!

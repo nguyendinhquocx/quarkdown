@@ -24,7 +24,7 @@ internal class QuarkdownCslFormat : BaseFormat() {
     private val tokenConverter =
         CslTokenConverter { text, type ->
             when (type) {
-                TextToken.Type.DOI -> formatDOI(text)
+                TextToken.Type.DOI -> addDOIPrefix(text)
                 else -> formatURL(text)
             }
         }
