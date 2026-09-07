@@ -4,6 +4,10 @@
 @use "util/latex-tables" as *;
 @use "util/beamer-toc" as *;
 @use "util/font-imports" as *;
+@use "util/heading-background-inset" as *;
+@use "util/segmented-footer" as *;
+@use "../components/util/slides" as *;
+
 @include import-font-family('source-sans-pro');
 @include import-font-family('fira-sans');
 @include import-font-family('noto-sans-mono', $variants: '400' '700');
@@ -22,6 +26,12 @@
 
 .quarkdown-slides {
   --qd-horizontal-alignment-global: start;
+
+  #{$slide-selector} {
+    &:has(h1) {
+      --qd-horizontal-alignment-global: center;
+    }
+  }
 }
 
 .quarkdown {
@@ -29,8 +39,20 @@
   @include latex-tables;
   @include beamer-toc;
 
+  h1, h2 {
+    background-color: var(--qd-main-color-muted);
+    color: var(--qd-link-color);
+  }
+
   h1 {
-    padding: 12px;
+    border-radius: 8px;
+    padding: 12px 0;
+    margin-top: 7rem !important;
+    text-align: center;
+  }
+
+  h2 {
+    @include heading-background-inset($inset-multiplier: 2, $padding-top: 12px, $padding-bottom: 12px);
   }
 
   p {
@@ -77,9 +99,12 @@
     }
   }
 
-  // Footer
-  .page-margin-bottom-center > * {
-    padding: 12px;
-    margin-bottom: 0;
-  }
+  @include segmented-footer(
+          $padding: 12px,
+          $first-background-color: var(--qd-primary-color),
+          $first-color: var(--qd-color-on-primary),
+          $even-background-color: var(--qd-background-color),
+          $even-color: var(--qd-link-color),
+          $odd-background-color: var(--qd-main-color-muted),
+  );
 }

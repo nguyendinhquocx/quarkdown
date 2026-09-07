@@ -2,7 +2,19 @@
 
 ## [Unreleased]
 
+The highlights of this release include significant performance improvements, better portability thanks to reduced binary size and less external dependencies, and enhanced `slides` artifacts.
+
 ### Added
+
+#### [New layout theme: `focus`](https://quarkdown.com/wiki/themes)
+
+The new `focus` layout theme is a port of the [Focus Beamer theme](https://www.overleaf.com/latex/templates/focus-a-minimalist-beamer-theme/bytzgdfmdpjq). It’s a simple and clean theme well-suited for slides and articles.
+
+Recommended combination:
+
+```text
+.theme {paperwhite} layout:{focus}
+```
 
 #### [Code block callouts](https://quarkdown.com/wiki/code#callouts)
 
@@ -23,11 +35,24 @@ The new `callouts` argument of the `.code` function attaches numbered markers to
 
 #### PDF export without Node.js [ecosystem breaking change]
 
-Exporting to PDF no longer requires Node.js, npm, and Puppeteer. Quarkdown now communicates directly with a Chromium-family browser, which makes PDF generation faster to start and much simpler to set up.
+Exporting to PDF no longer requires Node.js, npm, and Puppeteer. Quarkdown now communicates directly with a Chromium-family browser, which makes PDF generation much faster and simpler to set up.
 
 Package manager installations download a headless Chrome shell automatically. If you installed Quarkdown manually, download it from the [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) page, or point Quarkdown to an existing Chromium-family installation with the new `--chrome-path` option or the `QD_CHROME_PATH` environment variable.
 
 > Migration note: the `--node-path` and `--npm-path` options, along with the `QD_NPM_PREFIX` and `NODE_PATH` environment variables, are no longer used. `quarkdown doctor env` now reports the browser's status.
+
+#### `slides` break page on H2
+
+Unless overridden via `.autopagebreak`, `slides` documents now automatically break page on every H1 and H2.
+This release aims at making H1 the standard for title slides, and H2 for content slides.
+
+#### [`.row` and `.column`](https://quarkdown.com/wiki/stacks) inherit global alignment by default
+
+When `alignment` isn't explicitly set, `.row` and `.column` now inherit the parent's alignment (e.g. `center` in centered slides) instead of defaulting to `start`.
+
+#### Improved `beamer` theme
+
+The `beamer` theme's layout was improved for a more consistent look.
 
 #### Reflectionless function calls
 
@@ -40,6 +65,11 @@ Locale resolution from `.doclang` was optimized, via a compile-time-generated an
 Breaking change: calling `.doclang` without a parameter now returns the *English* name of the current locale, rather than its localized name.
 
 ### Fixed
+
+#### Block-aware [`.text`](https://quarkdown.com/wiki/text) and `.whitespace`
+
+The `.text` and `.whitespace` functions now adapt to where they are called.
+This fixes spacing issues when invoked as block-level functions.
 
 #### Layout themes: bold weight and leaner font artifacts
 
