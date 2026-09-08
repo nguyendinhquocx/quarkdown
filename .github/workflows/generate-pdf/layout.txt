@@ -1,5 +1,4 @@
 latex
 minimal
-focus
 beamer
 hyperlegible
