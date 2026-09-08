@@ -2,13 +2,15 @@
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-08
+
 The highlights of this release include significant performance improvements, better portability thanks to reduced binary size and less external dependencies, and enhanced `slides` artifacts.
 
 ### Added
 
 #### [New layout theme: `focus`](https://quarkdown.com/wiki/themes)
 
-The new `focus` layout theme is a port of the [Focus Beamer theme](https://www.overleaf.com/latex/templates/focus-a-minimalist-beamer-theme/bytzgdfmdpjq). It’s a simple and clean theme well-suited for slides and articles.
+The new `focus` layout theme is an adaptation of the [Focus Beamer theme](https://www.overleaf.com/latex/templates/focus-a-minimalist-beamer-theme/bytzgdfmdpjq). It’s a simple and clean theme well-suited for slides and articles.
 
 Recommended combination:
 
@@ -31,11 +33,38 @@ The new `callouts` argument of the `.code` function attaches numbered markers to
 
 <img width="660" alt="Callout" src="https://github.com/user-attachments/assets/99521edd-4ef0-4566-b114-3027c4fb5c91" />
 
+#### Slides-tailored project creation
+
+Creating a new `slides` project via `quarkdown create` now generates starter content designed for presentations.
+
+#### [New collection operations: `prepended` and `appended`](https://quarkdown.com/wiki/iterable)
+
+The new `prepended` and `appended` functions add an element at the beginning or end of a collection, respectively,
+without affecting the original collection.
+
+```markdown
+.var {letters}
+    - B
+    - C
+
+.foreach {.letters::prepended {A}::appended {D}}
+    .1
+```
+
+> Output:
+>
+> ```text
+> A
+> B
+> C
+> D
+> ```
+
 ### Changed
 
 #### PDF export without Node.js [ecosystem breaking change]
 
-Exporting to PDF no longer requires Node.js, npm, and Puppeteer. Quarkdown now communicates directly with a Chromium-family browser, which makes PDF generation much faster and simpler to set up.
+Exporting to PDF no longer requires Node.js, npm, and Puppeteer. Quarkdown now communicates directly with a Chromium-family browser, which makes PDF generation significantly faster and simpler to set up.
 
 Package manager installations download a headless Chrome shell automatically. If you installed Quarkdown manually, download it from the [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) page, or point Quarkdown to an existing Chromium-family installation with the new `--chrome-path` option or the `QD_CHROME_PATH` environment variable.
 
@@ -62,13 +91,22 @@ Calling a native function no longer involves JVM reflection, improving performan
 
 Locale resolution from `.doclang` was optimized, via a compile-time-generated and efficiently indexed table. Improvements include faster lookups, true platform independence, reduced memory usage, and smaller binary size.
 
-Breaking change: calling `.doclang` without a parameter now returns the *English* name of the current locale, rather than its localized name.
+Breaking change: calling `.doclang` without a parameter now returns the _English_ name of the current locale, rather than its localized name.
 
 ### Fixed
 
-#### Block-aware [`.text`](https://quarkdown.com/wiki/text) and `.whitespace`
+#### Wide tables in `docs` documents scroll horizontally
 
-The `.text` and `.whitespace` functions now adapt to where they are called.
+In `docs` documents, a table wider than the content area now scrolls horizontally within its own area.
+
+#### `slides` PDF export improvements
+
+PDF artifacts generated from `slides` documents now feature a more polished layout. 
+Blank (headerless) slides are now spaced correctly.
+
+#### Block-aware [`.text`](https://quarkdown.com/wiki/text), `.codespan` and `.whitespace`
+
+The `.text`, `.codespan` and `.whitespace` functions now adapt to where they are called.
 This fixes spacing issues when invoked as block-level functions.
 
 #### Layout themes: bold weight and leaner font artifacts
@@ -1362,7 +1400,9 @@ Table of contents are no longer empty if no level 1 headings are present, or if 
 
 Table cells now correctly apply the same line spacing as paragraphs and lists.
 
-[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.6.0...HEAD
+
+[2.6.0]: https://github.com/iamgio/quarkdown/compare/v2.5.1...v2.6.0
 
 [2.5.1]: https://github.com/iamgio/quarkdown/compare/v2.5.0...v2.5.1
 
