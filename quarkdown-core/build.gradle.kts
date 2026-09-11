@@ -4,7 +4,7 @@ plugins {
     `java-test-fixtures`
 }
 
-val cslStyles: Configuration by configurations.creating
+val cslStyles: Configuration = configurations.create("cslStyles")
 
 dependencies {
     sequenceOf(kotlin("test"), "org.assertj:assertj-core:3.27.6").forEach {
@@ -15,55 +15,55 @@ dependencies {
     testCompileOnly(project(":quarkdown-native-library-processor"))
     kspTest(project(":quarkdown-native-library-processor"))
     ksp(project(":quarkdown-locale-table-processor"))
-    implementation("com.squareup.okio:okio:3.18.1")
-    implementation("com.squareup.okio:okio-fakefilesystem:3.18.1")
+    implementation("com.squareup.okio:okio:3.18.2")
+    implementation("com.squareup.okio:okio-fakefilesystem:3.18.2")
     implementation("com.github.h0tk3y.betterParse:better-parse:0.4.4")
-    implementation("co.touchlab:kermit:2.1.0")
+    implementation("co.touchlab:kermit:2.2.0")
     implementation("com.mohamedrejeb.ksoup:ksoup-entities:0.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("io.ktor:ktor-http:3.5.2")
-    implementation("com.github.ajalt.colormath:colormath:3.6.1")
-    implementation("de.undercouch:citeproc-java:3.5.0")
-    cslStyles("org.citationstyles:styles:26.2")
-    implementation("org.citationstyles:locales:26.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")
+    implementation("com.github.ajalt.colormath:colormath:3.7.0")
+    implementation("com.quarkdown.bibliographer:bibliographer:0.3.0")
+    cslStyles("org.citationstyles:styles:26.8")
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.5.2")
 }
 
 // Extracts only the CSL style files listed in csl-styles.txt from the full styles collection, to reduce the bundle size.
-val extractCslStyles by tasks.registering {
-    val styleListFile = file("csl-styles.txt")
-    val outputDir = layout.buildDirectory.dir("generated/csl-styles")
+val extractCslStyles =
+    tasks.register("extractCslStyles") {
+        val styleListFile = file("csl-styles.txt")
+        val outputDir = layout.buildDirectory.dir("generated/csl-styles")
 
-    inputs.files(cslStyles)
-    inputs.file(styleListFile)
-    outputs.dir(outputDir)
+        inputs.files(cslStyles)
+        inputs.file(styleListFile)
+        outputs.dir(outputDir)
 
-    doLast {
-        val outDir = outputDir.get().asFile
-        outDir.deleteRecursively()
-        outDir.mkdirs()
+        doLast {
+            val outDir = outputDir.get().asFile
+            outDir.deleteRecursively()
+            outDir.mkdirs()
 
-        val styleNames =
-            styleListFile
-                .readLines()
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
-                .toSet()
+            val styleNames =
+                styleListFile
+                    .readLines()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .toSet()
 
-        project.copy {
-            from(project.zipTree(cslStyles.singleFile))
-            into(outDir)
-            include(styleNames.map { "$it.csl" })
-        }
+            project.copy {
+                from(project.zipTree(cslStyles.singleFile))
+                into(outDir)
+                include(styleNames.map { "$it.csl" })
+            }
 
-        // Verify all listed styles were found.
-        val extracted = outDir.listFiles()?.map { it.nameWithoutExtension }?.toSet() ?: emptySet()
-        val missing = styleNames - extracted
-        if (missing.isNotEmpty()) {
-            error("CSL styles not found in styles JAR: ${missing.joinToString()}")
+            // Verify all listed styles were found.
+            val extracted = outDir.listFiles()?.map { it.nameWithoutExtension }?.toSet() ?: emptySet()
+            val missing = styleNames - extracted
+            if (missing.isNotEmpty()) {
+                error("CSL styles not found in styles JAR: ${missing.joinToString()}")
+            }
         }
     }
-}
 
 tasks.test {
     // Lets tests read CSL styles from the extraction output.
