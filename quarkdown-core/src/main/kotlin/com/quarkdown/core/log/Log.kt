@@ -4,8 +4,12 @@ import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import co.touchlab.kermit.mutableLoggerConfigInit
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Tag that marks success messages, granting them a highlighted format.
@@ -20,7 +24,21 @@ private object QuarkdownLogWriter : LogWriter() {
     private const val ANSI_GREEN = "\u001B[32m"
     private const val ANSI_RESET = "\u001B[0m"
 
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val timeFormat =
+        LocalTime.Format {
+            hour()
+            char(':')
+            minute()
+        }
+
+    @OptIn(ExperimentalTime::class)
+    private fun currentTime(): String =
+        timeFormat.format(
+            Clock.System
+                .now()
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+                .time,
+        )
 
     override fun log(
         severity: Severity,
@@ -35,8 +53,7 @@ private object QuarkdownLogWriter : LogWriter() {
                 }
 
                 tag == SUCCESS_TAG -> {
-                    val time = LocalTime.now().format(timeFormatter)
-                    println("$ANSI_WHITE[$time]$ANSI_RESET ${ANSI_GREEN}Success$ANSI_RESET $message")
+                    println("$ANSI_WHITE[${currentTime()}]$ANSI_RESET ${ANSI_GREEN}Success$ANSI_RESET $message")
                 }
 
                 severity == Severity.Warn -> {
@@ -58,26 +75,24 @@ private object QuarkdownLogWriter : LogWriter() {
 
 /**
  * Bridge for logging utilities, backed by Kermit.
- * The minimum severity is read from the `loglevel` system property
- * (`debug`, `info`, `warn`, `error`), defaulting to `info`.
+ * The minimum [level] defaults to [LogLevel.INFO] and can be adjusted by the launcher
+ * (e.g. the CLI, which reads it from the `QD_LOG_LEVEL` environment variable).
  */
 object Log {
     private val config =
         mutableLoggerConfigInit(listOf(QuarkdownLogWriter)).apply {
-            minSeverity = severityFromProperty()
+            minSeverity = LogLevel.INFO.severity
         }
 
     private val logger = Logger(config)
 
     /**
-     * @return the minimum severity set via the `loglevel` system property, or [Severity.Info] by default
+     * The minimum level a message must have in order to be logged.
      */
-    private fun severityFromProperty(): Severity =
-        when (System.getProperty("loglevel")?.lowercase()) {
-            "debug" -> Severity.Debug
-            "warn" -> Severity.Warn
-            "error" -> Severity.Error
-            else -> Severity.Info
+    var level: LogLevel = LogLevel.INFO
+        set(value) {
+            field = value
+            config.minSeverity = value.severity
         }
 
     fun debug(message: Any) = logger.d { message.toString() }
@@ -96,11 +111,4 @@ object Log {
     fun warn(message: Any) = logger.w { message.toString() }
 
     fun error(message: Any) = logger.e { message.toString() }
-
-    /**
-     * Disables all logging.
-     */
-    fun disableLogging() {
-        config.minSeverity = Severity.Assert
-    }
 }

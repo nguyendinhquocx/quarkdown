@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+### Changed
+
+#### Tables split across pages repeat their header row
+
+In `paged` documents, when a table is split across two or more pages, each page now repeats the header row.
+
+#### [Log level via `--log-level`](https://quarkdown.com/wiki/cli-options)
+
+The log level is now set through the new `--log-level` option (`debug`, `info`, `warn`, `error`, or `none`) or the `QD_LOG_LEVEL` environment variable, with the option taking precedence. The old `-Dloglevel` JVM property is no longer read.
+
+```shell
+quarkdown --log-level debug c main.qd
+```
+
+#### PDF compilation hint in `quarkdown create`
+
+After creating a new project via [`quarkdown create`](https://quarkdown.com/wiki/creating-a-project), the summary now also suggests the command to compile the document to PDF.
+
+#### [dev] Bibliography management delegated to `kotlin-bibliographer`
+
+The *Citation Style Language* processor, bibliography management and style catalog were extracted and offloaded to the new [`kotlin-bibliographer`](https://github.com/quarkdown-labs/kotlin-bibliographer), Quarkdown's own Kotlin Multiplatform open source library.
+
+### Fixed
+
+#### Code blocks near page breaks no longer lose content
+
+In `paged` documents, a code block close to a page break could be rendered only partially, or not at all, because syntax highlighting was applied after page breaks were calculated.
+
+#### Page size in `slides`
+
+In `slides` documents, the page size set via `.pageformat` now correctly defines the presentation's base resolution.
+
 ## [2.6.0] - 2026-09-08
 
 The highlights of this release include significant performance improvements, better portability thanks to reduced binary size and less external dependencies, and enhanced `slides` artifacts.
