@@ -3,10 +3,12 @@ import {postRenderingExecutionQueue, preRenderingExecutionQueue} from "../../que
 import {Sidebar} from "../handlers/sidebar";
 import {PageMarginsPaged} from "../handlers/page-margins/page-margins-paged";
 import {FootnotesPaged} from "../handlers/footnotes/footnotes-paged";
-import {SplitCodeBlocksPaged} from "../handlers/paged/split-code-blocks-paged";
 import {SplitTablesPaged} from "../handlers/paged/split-tables-paged";
 import {SplitFiguresPaged} from "../handlers/paged/split-figures-paged";
 import {HeadingBreaksPaged} from "../handlers/paged/heading-breaks-paged";
+import {PagedNodeHandler} from "../handlers/paged/node/paged-node-handler";
+import {RepeatTableHeaders} from "../handlers/paged/node/repeat-table-headers";
+import {RestoreCodeIndentation} from "../handlers/paged/node/restore-code-indentation";
 import {PageNumbers} from "../handlers/page-numbers";
 import {PagedLikeQuarkdownDocument} from "../paged-like-quarkdown-document";
 import {ShowOnReady} from "../handlers/show-on-ready";
@@ -49,9 +51,23 @@ export class PagedDocument implements PagedLikeQuarkdownDocument {
         return page.classList.contains("pagedjs_right_page") ? "right" : "left";
     }
 
-    /** Sets up pre-rendering to execute when DOM content is loaded. */
+    /**
+     * Sets up pre-rendering to execute when DOM content is loaded,
+     * and registers the [node handlers][getNodeHandlers] that take part in pagination.
+     */
     setupPreRenderingHook() {
         document.addEventListener("DOMContentLoaded", async () => await preRenderingExecutionQueue.execute());
+
+        const nodeHandlers = this.getNodeHandlers();
+        class PagedNodeHandlerDispatcher extends Paged.Handler {
+            renderNode(clone: Node, source: Node) {
+                nodeHandlers
+                    .filter(handler => handler.accepts(clone))
+                    .forEach(handler => handler.render(clone, source));
+            }
+        }
+
+        Paged.registerHandlers(PagedNodeHandlerDispatcher);
     }
 
     /** Sets up post-rendering to execute when paged.js is ready. */
@@ -75,13 +91,22 @@ export class PagedDocument implements PagedLikeQuarkdownDocument {
             new Sidebar(this),
             new ShowOnReady(this),
             new HeadingBreaksPaged(this),
-            new SplitCodeBlocksPaged(this),
             new SplitTablesPaged(this),
             new SplitFiguresPaged(this),
             new PageMarginsPaged(this),
             new PageNumbers(this),
             new PersistentHeadings(this),
             new FootnotesPaged(this),
+        ];
+    }
+
+    /**
+     * @returns Handlers of single nodes rendered during pagination.
+     */
+    getNodeHandlers(): PagedNodeHandler[] {
+        return [
+            new RepeatTableHeaders(),
+            new RestoreCodeIndentation(),
         ];
     }
 }
