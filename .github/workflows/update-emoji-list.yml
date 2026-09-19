@@ -19,7 +19,7 @@ jobs:
           checkout-token: ${{ secrets.COMMITTER_TOKEN }}
 
       - name: Build distribution
-        uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
+        uses: burrunan/gradle-cache-action@v3
         with:
           job-id: main
           arguments: distZip
@@ -31,6 +31,6 @@ jobs:
           echo "$PWD/build/unzipped/quarkdown/bin" >> $GITHUB_PATH
 
       - name: Update emoji list
-        uses: ./.github/actions/update-emoji-list
+        uses: iamgio/quarkdown/.github/actions/update-emoji-list@main
         with:
           quarkdown-path: ./build/unzipped/quarkdown/bin/quarkdown
