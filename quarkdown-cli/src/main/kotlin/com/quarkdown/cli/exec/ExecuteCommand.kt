@@ -18,6 +18,7 @@ import com.quarkdown.cli.watcher.DirectoryWatcher
 import com.quarkdown.core.TIMEOUT_EXIT_CODE
 import com.quarkdown.core.document.sub.SubdocumentOutputNaming
 import com.quarkdown.core.filesystem.DiskFileSystem
+import com.quarkdown.core.filesystem.toFsEntry
 import com.quarkdown.core.function.error.FunctionCallRuntimeException
 import com.quarkdown.core.log.Log
 import com.quarkdown.core.log.LogLevel
@@ -30,6 +31,7 @@ import com.quarkdown.core.pipeline.error.StrictPipelineErrorHandler
 import com.quarkdown.core.pipeline.session.QuarkdownSession
 import com.quarkdown.core.util.kebabCaseName
 import com.quarkdown.installlayout.InstallLayout
+import com.quarkdown.installlayout.get
 import com.quarkdown.interaction.Env
 import com.quarkdown.interaction.executable.ChromiumWrapper
 import java.io.File
@@ -214,12 +216,7 @@ abstract class ExecuteCommand(
             // Might be overridden by a subclass via `finalizeCliOptions`, e.g. `CompileCommand` which requires a source file.
             source = null,
             outputDirectory,
-            libraryDirectory =
-                libraryDirectory
-                    ?: InstallLayout.get
-                        .quarkdownLibraries
-                        .file
-                        .toFileOrNull(),
+            libraryDirectory = libraryDirectory?.toFsEntry() ?: InstallLayout.get.quarkdownLibraries.file,
             renderer,
             clean,
             pipe = false,
