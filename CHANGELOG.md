@@ -4,6 +4,14 @@
 
 ### Fixed
 
+#### Multi-line setext headings keep all their lines
+
+A heading underlined by `===` or `---` that spans several lines used to keep only the last line. The whole text now becomes the heading.
+
+#### Flat stack usage for block tokenization
+
+Tokenization of Markdown paragraphs, lists, list items, blockquotes, tables, code, footnotes, and setext headings no longer grows the recursion stack linearly, optimizing resource usage and preventing crashes on small stacks. 
+
 ### REPL prints to console
 
 Fixed a regression that caused `quarkdown repl` to write to file rather than to stdout. 
@@ -11,6 +19,10 @@ Fixed a regression that caused `quarkdown repl` to write to file rather than to 
 #### Preview runs no longer re-scan libraries
 
 Preview sessions no longer look for available libraries on each run, slightly improving performance.
+
+#### PDF export no longer fails when its port is busy
+
+Fixed a regression that caused PDF export to fail instead of moving on to the next free port, if the current one was busy.
 
 ## [2.6.2] - 2026-09-22
 
