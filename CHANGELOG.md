@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.6.3] - 2026-10-01
+
 ### Changed
 
 #### Faster source tokenization
@@ -9,6 +11,20 @@
 Source tokenization is now implemented via scanner rather than regex, making the first stage of compilation up to 5x faster.
 
 ### Fixed
+
+#### `.tablebyrows` accepts dynamically typed rows
+
+Rows generated dynamically, such as the output of `.repeat` stored in a variable, can now be used as table rows. Previously, this failed with a type cast error.
+
+```text
+.var {rows}
+    .repeat {3}
+        index:
+        - - Cell .index:A
+          - Cell .index:B
+
+.tablebyrows rows:{.rows}
+```
 
 #### CommonMark emphasis correctness
 
@@ -1523,7 +1539,9 @@ Table of contents are no longer empty if no level 1 headings are present, or if 
 
 Table cells now correctly apply the same line spacing as paragraphs and lists.
 
-[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.6.2...HEAD
+[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.6.3...HEAD
+
+[2.6.3]: https://github.com/iamgio/quarkdown/compare/v2.6.2...v2.6.3
 
 [2.6.2]: https://github.com/iamgio/quarkdown/compare/v2.6.1...v2.6.2
 
