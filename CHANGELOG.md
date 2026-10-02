@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Changed
+
+#### Faster paged document rendering
+
+Paged documents now render up to 6x faster in the browser, live preview, and PDF export.
+
+### Fixed
+
+#### Documents with many block function calls compile in linear time
+
+Tokenization of a block-level function call was optimized to be linear rather than quadratic, and more memory-efficient.
+
+#### Faster loops and custom functions
+
+Loops like `.repeat` and `.foreach`, and custom functions defined via `.function`, run up to four times faster when their body calls other functions.
+
+#### Pre-compiled localization
+
+Every compilation is now a few milliseconds faster, as the built-in stdlib [localization table](https://quarkdown.com/wiki/localization) is no longer processed from scratch each time.
+
 ## [2.6.3] - 2026-10-01
 
 ### Changed

@@ -87,6 +87,16 @@ class FunctionCallGrammar(
          * The character that, at the end of a line, continues parsing arguments on the next line.
          */
         const val LINE_CONTINUATION = '\\'
+
+        /**
+         * Matcher of [IDENTIFIER_PATTERN], compiled once and shared by all grammar instances.
+         */
+        private val identifierMatcher = regexToken(IDENTIFIER_PATTERN)
+
+        /**
+         * Matcher of whitespace, compiled once and shared by all grammar instances.
+         */
+        private val whitespaceMatcher = regexToken("[ \\t]+")
     }
 
     /**
@@ -124,7 +134,7 @@ class FunctionCallGrammar(
     /**
      * Token that matches whitespace, ignored between arguments
      */
-    private val whitespace by regexToken("[ \\t]+")
+    private val whitespace by token { string, position -> whitespaceMatcher.match(string, position) }
 
     /**
      * Token that matches a line continuation: a backslash followed by a newline,
@@ -204,7 +214,7 @@ class FunctionCallGrammar(
      */
     private val identifier by token { string, position ->
         if (inArg) return@token 0
-        regexToken(IDENTIFIER_PATTERN).match(string, position)
+        identifierMatcher.match(string, position)
     }
 
     /**
@@ -219,7 +229,12 @@ class FunctionCallGrammar(
         // Whether at least one indented line has been found.
         var found = false
 
-        for (line in string.substring(position).lineSequence()) {
+        // Lines are scanned in place: the input may extend to the end of the document,
+        // and copying it on each attempt would make lexing quadratic in document length.
+        while (position + length <= string.length) {
+            val lineStart = position + length
+            val lineEnd = string.indexOf('\n', lineStart).takeIf { it >= 0 } ?: string.length
+            val line = string.subSequence(lineStart, lineEnd)
             val hasIndent = line.startsWith("  ") || line.startsWith("\t")
 
             // Blank lines (even if not indented) are included in the body argument.
@@ -233,7 +248,10 @@ class FunctionCallGrammar(
             }
 
             length += line.length
-            if (string.getOrNull(length + position) == '\n') length++ // Include line break in the character count.
+            if (string.getOrNull(length + position) != '\n') {
+                break
+            }
+            length++ // Include line break in the character count.
         }
 
         when {
