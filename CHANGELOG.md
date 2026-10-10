@@ -2,23 +2,29 @@
 
 ## [Unreleased]
 
+## [2.6.4] - 2026-10-09
+
 ### Added
 
 #### [SI units in TeX formulas](https://quarkdown.com/wiki/tex-formulae#extensions)
 
 The new built-in `latex-siunitx` library brings the commands of LaTeX's `siunitx` package to TeX formulae.
 
-```
-.include {latex-siunitx}
+    .include {latex-siunitx}
 
-$ \qty{9.81}{\meter\per\second\squared} $
-```
+    $ \qty{9.81}{\meter\per\second\squared} $
 
 ### Changed
 
 #### Faster paged document rendering
 
 Paged documents now render up to 6x faster in the browser, live preview, and PDF export.
+
+#### Avoid breaking page inside table rows
+
+Table rows now avoid page breaks by in paged documents, as long as they fit on one page.
+
+Thanks @Ethereal49!
 
 ### Fixed
 
@@ -1575,7 +1581,9 @@ Table of contents are no longer empty if no level 1 headings are present, or if 
 
 Table cells now correctly apply the same line spacing as paragraphs and lists.
 
-[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.6.3...HEAD
+[Unreleased]: https://github.com/iamgio/quarkdown/compare/v2.6.4...HEAD
+
+[2.6.4]: https://github.com/iamgio/quarkdown/compare/v2.6.3...v2.6.4
 
 [2.6.3]: https://github.com/iamgio/quarkdown/compare/v2.6.2...v2.6.3
 
