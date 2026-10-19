@@ -7,14 +7,15 @@ The official `@atoms` repository can be found at [`quarkdown-labs/atoms`](https:
 
 ## Using a package
 
-Reference a package from `.include` with the `@scope/name:version` syntax:
+Reference a package from `.include` with the `@scope/name:version` syntax.
 
-```markdown
-.include {@atoms/simple-cv:1.0.0}
-```
+.examplemirror
+    .include {@atoms/cowsay:1.0.0}
+
+    .cowsay {Hello, Quarkdown!}
 
 - `@scope` refers to the repository or namespace identifier. `@atoms` is currently the only supported one.
-- `simple-cv` is the package name.
+- `cowsay` is the package name.
 - `1.0.0` is the package version. Note that versions in the `@atoms` scope are immutable.
 
 The first time a document references a package, Quarkdown downloads it into your project:
@@ -22,7 +23,7 @@ The first time a document references a package, Quarkdown downloads it into your
 .filetree
     - my-project/
       - @atoms/
-        - simple-cv/
+        - cowsay/
           - atom.toml
           - main.qd
           - ...

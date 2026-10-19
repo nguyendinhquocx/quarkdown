@@ -158,7 +158,7 @@ class QuarkdownHtmlNodeRenderer(
         div("stack stack-${node.layout.asCSS}") {
             +node.children
 
-            style {
+            style(node.style) {
                 (node.layout as? Stacked.Grid)?.let {
                     // The amount of 'auto' matches the amount of columns/rows.
                     "grid-template-columns" value "auto ".repeat(it.columnCount).trimEnd()
@@ -168,6 +168,8 @@ class QuarkdownHtmlNodeRenderer(
                 "align-items" value node.crossAxisAlignment
                 "row-gap" value node.rowGap
                 "column-gap" value node.columnGap
+                "width" value node.width
+                "height" value node.height
             }
         }
 

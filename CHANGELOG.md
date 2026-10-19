@@ -13,12 +13,9 @@ A package, called ***atom***, can be easily included into your document the same
 The officially maintained scope, [`@atoms`](https://github.com/quarkdown-labs/atoms), is a GitHub-hosted repository anyone can contribute to.
 
 ```markdown
-.include {@atoms/kanban:1.0.0}
+.include {@atoms/cowsay:1.0.0}
 
-.kanban
-    .kbcolumn {To do}
-        .kbitem {Update documentation}
-        ...
+.cowsay {Hello, Quarkdown!}
 ```
 
 #### [Project templates from packages](https://quarkdown.com/wiki/publishing-packages#templates)
@@ -27,6 +24,17 @@ The officially maintained scope, [`@atoms`](https://github.com/quarkdown-labs/at
 
 ```
 quarkdown create --template @atoms/simple-cv:1.0.0
+```
+
+#### [Styling options on `.row`, `.column` and `.grid`](https://quarkdown.com/wiki/stacks)
+
+Stack functions now accept the same styling options as `.container`, such as `background`, `foreground`, `border`, `padding`, `radius` and the font options, along with `width` and `height`, without relying on container wrapping.
+
+```markdown
+.row gap:{1cm} width:{12cm} background:{teal} foreground:{white} padding:{12px} radius:{8px}
+    A
+
+    B
 ```
 
 #### [Color building and derivation](https://quarkdown.com/wiki/color)
