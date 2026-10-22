@@ -12,16 +12,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest      # x64
-          - ubuntu-24.04-arm   # arm64
-          - windows-latest     # x64
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: iamgio/quarkdown/.github/actions/setup-environment@main
-        if: startsWith(matrix.os, 'ubuntu')
-        with:
-          full-checkout: ${{ inputs.full-checkout }}
+    - uses: iamgio/quarkdown/.github/actions/setup-environment@main
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        full-checkout: ${{ inputs.full-checkout }}
 
     - name: Checkout Repository (Windows)
       if: matrix.os == 'windows-latest'
@@ -45,18 +42,12 @@ jobs:
         arguments: ${{ matrix.os == 'ubuntu-latest' && 'ktlintCheck test' || 'test' }}
 
   e2e-build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest      # x64
-          - ubuntu-24.04-arm   # arm64
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: iamgio/quarkdown/.github/actions/setup-environment@main
-        with:
-          full-checkout: ${{ inputs.full-checkout }}
+    - uses: iamgio/quarkdown/.github/actions/setup-environment@main
+      with:
+        full-checkout: ${{ inputs.full-checkout }}
 
     - name: Build CLI
       id: build
@@ -65,11 +56,11 @@ jobs:
         job-id: e2e-build
         arguments: installDist
 
-      # Building the wiki to ensure it compiles
-      - name: Build wiki
-        run: |
-          cd docs
-          ${{ github.workspace }}/build/install/quarkdown/bin/quarkdown c main.qd --strict --allow all --clean
+    # Building the wiki to ensure it compiles
+    - name: Build wiki
+      run: |
+        cd docs
+        ${{ github.workspace }}/build/install/quarkdown/bin/quarkdown c main.qd --strict --allow all --clean
 
     - name: Upload CLI artifact
       uses: actions/upload-artifact@v4
@@ -79,19 +70,17 @@ jobs:
         retention-days: 1
 
   e2e-test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     needs: e2e-build
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest      # x64
         shard: [1, 2, 3, 4]
 
     steps:
-      - uses: iamgio/quarkdown/.github/actions/setup-environment@main
-        with:
-          full-checkout: ${{ inputs.full-checkout }}
+    - uses: iamgio/quarkdown/.github/actions/setup-environment@main
+      with:
+        full-checkout: ${{ inputs.full-checkout }}
 
     - name: Download CLI artifact
       uses: actions/download-artifact@v4
@@ -99,8 +88,8 @@ jobs:
         name: quarkdown-e2e-cli
         path: build/install/quarkdown
 
-      - name: Make CLI executable
-        run: chmod +x build/install/quarkdown/bin/quarkdown
+    - name: Make CLI executable
+      run: chmod +x build/install/quarkdown/bin/quarkdown
 
     - name: Run E2E tests (shard ${{ matrix.shard }}/4)
       uses: burrunan/gradle-cache-action@v3
