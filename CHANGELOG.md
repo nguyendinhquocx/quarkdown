@@ -37,6 +37,14 @@ Stack functions now accept the same styling options as `.container`, such as `ba
     B
 ```
 
+#### [Scoped page formatting in slides](https://quarkdown.com/wiki/page-format)
+
+The `pages` and `side` parameters of `.pageformat`, previously available only in `paged` documents, now also work in `slides` documents. A scoped format applies its properties to the selected slides only.
+
+```markdown
+.pageformat pages:{2..3} background:{navy} alignment:{start}
+```
+
 #### [Color building and derivation](https://quarkdown.com/wiki/color)
 
 The new `.color` function builds a color from its red, green, blue and alpha components, each optional, and a base color:
@@ -47,7 +55,26 @@ The new `.color` function builds a color from its red, green, blue and alpha com
 .container background:{.brand::color alpha:{0.25}}
 ```
 
+#### [New collection operation: `joinstring`](https://quarkdown.com/wiki/iterable)
+
+The new `joinstring` function concatenates the elements of a collection into a single string.
+Elements are separated by `, ` by default, or by a custom `separator`.
+
+```markdown
+.var {letters}
+    - A
+    - B
+    - C
+
+.letters::joinstring 
+```
+> Output: `A, B, C`
+
 ### Fixed
+
+#### [Custom fonts in slides](https://quarkdown.com/wiki/font-configuration)
+
+In `slides` documents, fonts set via `.font` were ignored when the layout theme defined its own fonts.
 
 #### CSS styles on Android
 
