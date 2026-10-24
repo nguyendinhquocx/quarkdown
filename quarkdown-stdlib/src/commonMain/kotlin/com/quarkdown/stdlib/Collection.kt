@@ -4,6 +4,7 @@ package com.quarkdown.stdlib
 
 import com.quarkdown.core.function.reflect.annotation.LikelyChained
 import com.quarkdown.core.function.reflect.annotation.LikelyNamed
+import com.quarkdown.core.function.value.DictionaryValue
 import com.quarkdown.core.function.value.DynamicValue
 import com.quarkdown.core.function.value.GeneralCollectionValue
 import com.quarkdown.core.function.value.IterableValue
@@ -13,12 +14,14 @@ import com.quarkdown.core.function.value.PairValue
 import com.quarkdown.core.function.value.StringValue
 import com.quarkdown.core.function.value.Value
 import com.quarkdown.core.function.value.data.Lambda
+import com.quarkdown.core.function.value.dictionaryOf
 import com.quarkdown.core.function.value.wrappedAsValue
 import com.quarkdown.processor.annotation.Name
 import com.quarkdown.processor.annotation.QFunction
 import com.quarkdown.processor.annotation.QModule
 import com.quarkdown.stdlib.internal.asDouble
 import com.quarkdown.stdlib.internal.asJoinedString
+import com.quarkdown.stdlib.internal.test
 
 /**
  * Index of the first element in a collection.
@@ -263,6 +266,30 @@ fun collectionAppend(
 ): IterableValue<OutputValue<*>> = GeneralCollectionValue(collection + value)
 
 /**
+ * Finds the first element of a collection that satisfies a condition.
+ *
+ * ```
+ * .var {numbers}
+ *     - 3
+ *     - 8
+ *     - 12
+ *
+ * .numbers::findfirst {n: .n::isgreater than:{5}} <!-- 8 -->
+ * ```
+ *
+ * @param collection collection to search in
+ * @param condition condition to check, which accepts one argument (the current element) and returns a boolean
+ * @return the first element that satisfies [condition], or [none] if no element does
+ */
+@QFunction
+@Name("findfirst")
+@LikelyChained
+fun collectionFindFirst(
+    @Name("from") collection: Iterable<OutputValue<*>>,
+    condition: Lambda,
+): OutputValue<*> = collection.firstOrNull { condition.test(it) } ?: NOT_FOUND
+
+/**
  * Joins the elements of a collection into a single string, placing [separator] between adjacent elements.
  * Nested collections are flattened, and their elements are joined by the same separator.
  *
@@ -289,6 +316,34 @@ fun collectionJoinToString(
     @Name("from") collection: Iterable<OutputValue<*>>,
     @LikelyNamed separator: String = ", ",
 ): StringValue = collection.joinToString(separator) { it.asJoinedString(separator) }.wrappedAsValue()
+
+/**
+ * Associates each element of a collection with its index, **starting at 1**.
+ *
+ * ```
+ * .var {letters}
+ *     - A
+ *     - B
+ *
+ * .letters::withindices::foreach
+ *     .1::first .1::second
+ *
+ * <!-- 1 A -->
+ * <!-- 2 B -->
+ * ```
+ *
+ * @param collection collection to index
+ * @return a dictionary whose keys are the indices of the elements, starting at 1, and whose values are the elements themselves
+ */
+@QFunction
+@Name("withindices")
+@LikelyChained
+fun collectionWithIndices(
+    @Name("from") collection: Iterable<OutputValue<*>>,
+): DictionaryValue<OutputValue<*>> =
+    collection
+        .mapIndexed { index, value -> (index + INDEX_STARTS_AT).toString() to value }
+        .let { dictionaryOf(it) }
 
 /**
  * Creates a new pair.

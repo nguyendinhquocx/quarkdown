@@ -26,6 +26,12 @@ The officially maintained scope, [`@atoms`](https://github.com/quarkdown-labs/at
 quarkdown create --template @atoms/simple-cv:1.0.0
 ```
 
+#### Linux-ARM support
+
+Quarkdown now runs on Linux-aarch64!
+
+Thanks @maximilianbarg!
+
 #### [Styling options on `.row`, `.column` and `.grid`](https://quarkdown.com/wiki/stacks)
 
 Stack functions now accept the same styling options as `.container`, such as `background`, `foreground`, `border`, `padding`, `radius` and the font options, along with `width` and `height`, without relying on container wrapping.
@@ -45,6 +51,14 @@ The `pages` and `side` parameters of `.pageformat`, previously available only in
 .pageformat pages:{2..3} background:{navy} alignment:{start}
 ```
 
+#### [Page content padding](https://quarkdown.com/wiki/page-format)
+
+`.pageformat` accepts a new `padding` parameter, which adds blank space inside the content area of each page, between its borders and the content.
+
+```markdown
+.pageformat padding:{1cm} bordercolor:{red}
+```
+
 #### [Color building and derivation](https://quarkdown.com/wiki/color)
 
 The new `.color` function builds a color from its red, green, blue and alpha components, each optional, and a base color:
@@ -54,6 +68,47 @@ The new `.color` function builds a color from its red, green, blue and alpha com
 
 .container background:{.brand::color alpha:{0.25}}
 ```
+
+#### [New boolean operations: `and` and `or`](https://quarkdown.com/wiki/boolean#operators)
+
+The new `and` and `or` functions combine two boolean values, complementing the existing `not`.
+
+```markdown
+.if {.x::islower than:{10}::and {.x::isgreater than:{0}}}
+    x is between 0 and 10
+```
+
+#### [New collection operation: `withindices`](https://quarkdown.com/wiki/loops#indices)
+
+The new `withindices` function turns a collection into a dictionary that maps each element's position, starting at 1, to the element itself.
+This makes numbered iteration straightforward.
+
+```markdown
+.var {letters}
+    - A
+    - B
+
+.letters::withindices::foreach
+    index letter:
+    .index .letter
+```
+> Output:
+> 1 A
+> 2 B
+
+#### [New collection operation: `findfirst`](https://quarkdown.com/wiki/loops#find-element)
+
+The new `findfirst` function returns the first element of a collection that satisfies a condition, or `none` if there is no such element.
+
+```markdown
+.var {numbers}
+    - 3
+    - 8
+    - 12
+
+.numbers::findfirst {n: .n::isgreater than:{5}}
+```
+> Output: `8`
 
 #### [New collection operation: `joinstring`](https://quarkdown.com/wiki/iterable)
 
