@@ -3,7 +3,6 @@
 package com.quarkdown.stdlib
 
 import com.quarkdown.core.function.reflect.annotation.LikelyChained
-import com.quarkdown.core.function.reflect.annotation.LikelyNamed
 import com.quarkdown.core.function.value.DictionaryValue
 import com.quarkdown.core.function.value.DynamicValue
 import com.quarkdown.core.function.value.GeneralCollectionValue
@@ -11,7 +10,6 @@ import com.quarkdown.core.function.value.IterableValue
 import com.quarkdown.core.function.value.NumberValue
 import com.quarkdown.core.function.value.OutputValue
 import com.quarkdown.core.function.value.PairValue
-import com.quarkdown.core.function.value.StringValue
 import com.quarkdown.core.function.value.Value
 import com.quarkdown.core.function.value.data.Lambda
 import com.quarkdown.core.function.value.dictionaryOf
@@ -20,7 +18,6 @@ import com.quarkdown.processor.annotation.Name
 import com.quarkdown.processor.annotation.QFunction
 import com.quarkdown.processor.annotation.QModule
 import com.quarkdown.stdlib.internal.asDouble
-import com.quarkdown.stdlib.internal.asJoinedString
 import com.quarkdown.stdlib.internal.test
 
 /**
@@ -290,32 +287,29 @@ fun collectionFindFirst(
 ): OutputValue<*> = collection.firstOrNull { condition.test(it) } ?: NOT_FOUND
 
 /**
- * Joins the elements of a collection into a single string, placing [separator] between adjacent elements.
- * Nested collections are flattened, and their elements are joined by the same separator.
+ * Finds all the elements of a collection that satisfy a condition.
  *
  * ```
- * .var {letters}
- *     - A
- *     - B
- *     - C
+ * .var {numbers}
+ *     - 3
+ *     - 8
+ *     - 12
  *
- * .letters::joinstring <!-- A, B, C -->
- *
- * .letters::joinstring separator:{-} <!-- A-B-C -->
+ * .numbers::findall {n: .n::isgreater than:{5}} <!-- 8, 12 -->
  * ```
  *
- * @param collection collection whose elements to join
- * @param separator string placed between adjacent elements. Defaults to `, `
- * @return a string made of the elements of the collection, separated by [separator].
- *         An empty collection produces an empty string.
+ * @param collection collection to search in
+ * @param condition condition to check, which accepts one argument (the current element) and returns a boolean
+ * @return a new collection containing the elements that satisfy [condition], in their original order.
+ *         If no element does, the collection is empty
  */
 @QFunction
-@Name("joinstring")
+@Name("findall")
 @LikelyChained
-fun collectionJoinToString(
+fun collectionFindAll(
     @Name("from") collection: Iterable<OutputValue<*>>,
-    @LikelyNamed separator: String = ", ",
-): StringValue = collection.joinToString(separator) { it.asJoinedString(separator) }.wrappedAsValue()
+    condition: Lambda,
+): IterableValue<OutputValue<*>> = collection.filter { condition.test(it) }.wrappedAsValue()
 
 /**
  * Associates each element of a collection with its index, **starting at 1**.
@@ -344,6 +338,21 @@ fun collectionWithIndices(
     collection
         .mapIndexed { index, value -> (index + INDEX_STARTS_AT).toString() to value }
         .let { dictionaryOf(it) }
+
+/**
+ * Creates a new empty collection.
+ *
+ * ```
+ * .var {items} {.emptycollection}
+ *
+ * .items::size <!-- 0 -->
+ * ```
+ *
+ * @return a new collection with no elements
+ */
+@QFunction
+@Name("emptycollection")
+fun emptyCollection(): IterableValue<OutputValue<*>> = emptyList<OutputValue<*>>().wrappedAsValue()
 
 /**
  * Creates a new pair.

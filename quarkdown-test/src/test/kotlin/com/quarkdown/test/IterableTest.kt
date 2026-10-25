@@ -255,48 +255,12 @@ class IterableTest {
     }
 
     @Test
-    fun `join to string`() {
-        execute("$letters.abc::joinstring") {
-            assertEquals("<p>A, B, C</p>", it)
+    fun `empty collection`() {
+        execute(".emptycollection::size") {
+            assertEquals("<p>0</p>", it)
         }
-    }
-
-    @Test
-    fun `join to string with custom separator`() {
-        execute("$letters.abc::joinstring separator:{-}") {
-            assertEquals("<p>A-B-C</p>", it)
-        }
-    }
-
-    @Test
-    fun `join to string of numbers`() {
-        execute("$numbers.nums::joinstring separator:{+}") {
-            assertEquals("<p>1+2+3+4</p>", it)
-        }
-    }
-
-    @Test
-    fun `join to string of nested collection`() {
-        execute(
-            """
-            .var {nested}
-              - A
-              - :
-                - B
-                - C
-              - D
-
-            .nested::joinstring separator:{-}
-            """.trimIndent(),
-        ) {
-            assertEquals("<p>A-B-C-D</p>", it)
-        }
-    }
-
-    @Test
-    fun `join to string of empty collection`() {
-        execute(".var {empty} {.range from:{1} to:{0}}\n\n.empty::joinstring") {
-            assertEquals("<p></p>", it)
+        execute(".var {items} {.emptycollection}\n\n.items::appended {A}::appended {B}::join") {
+            assertEquals("<p>A, B</p>", it)
         }
     }
 
@@ -321,6 +285,41 @@ class IterableTest {
     fun `find first index of a value via with indices`() {
         execute("$letters.abc::withindices::findfirst {index letter: .letter::equals {B}}::first") {
             assertEquals("<p>2</p>", it)
+        }
+    }
+
+    @Test
+    fun `find all`() {
+        execute("$numbers.nums::findall {n: .n::isgreater than:{2}}::join") {
+            assertEquals("<p>3, 4</p>", it)
+        }
+        execute("$numbers.nums::findall {n: .n::isgreater than:{2}}::size") {
+            assertEquals("<p>2</p>", it)
+        }
+    }
+
+    @Test
+    fun `find all without match is an empty collection`() {
+        execute("$numbers.nums::findall {n: .n::isgreater than:{10}}::size") {
+            assertEquals("<p>0</p>", it)
+        }
+    }
+
+    @Test
+    fun `find all indices of matching values via with indices`() {
+        execute(
+            """
+            .var {letters}
+              - A
+              - B
+              - A
+
+            .letters::withindices::findall {index letter: .letter::equals {A}}::join
+                index letter:
+                .index
+            """.trimIndent(),
+        ) {
+            assertEquals("<p>1, 3</p>", it)
         }
     }
 

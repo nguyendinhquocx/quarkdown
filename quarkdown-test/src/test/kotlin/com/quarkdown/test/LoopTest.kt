@@ -1,7 +1,9 @@
 package com.quarkdown.test
 
+import com.quarkdown.core.pipeline.error.BasePipelineErrorHandler
 import com.quarkdown.test.util.execute
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 /**
@@ -89,6 +91,144 @@ class LoopTest {
                     "<h2>Hello 2</h2><p><strong>Hi</strong>!</p>",
                 it,
             )
+        }
+    }
+
+    @Test
+    fun `join without body joins the elements themselves`() {
+        execute(".var {abc}\n  - A\n  - B\n  - C\n\n.abc::join") {
+            assertEquals("<p>A, B, C</p>", it)
+        }
+        execute(".var {nums}\n  - 1\n  - 2\n  - 3\n\n.nums::join separator:{+}") {
+            assertEquals("<p>1+2+3</p>", it)
+        }
+    }
+
+    @Test
+    fun `join with default separator`() {
+        execute(".var {abc}\n  - A\n  - B\n  - C\n\n.abc::join\n    x:\n    .x") {
+            assertEquals("<p>A, B, C</p>", it)
+        }
+    }
+
+    @Test
+    fun `join with custom separator and rich output`() {
+        execute(".var {abc}\n  - A\n  - B\n  - C\n\n.abc::join separator:{-}\n    x:\n    **.x**") {
+            assertEquals("<p><strong>A</strong>-<strong>B</strong>-<strong>C</strong></p>", it)
+        }
+    }
+
+    @Test
+    fun `join with rich separator`() {
+        execute(".var {abc}\n  - A\n  - B\n  - C\n\n.abc::join separator:{**|**}\n    x:\n    .x") {
+            assertEquals("<p>A<strong>|</strong>B<strong>|</strong>C</p>", it)
+        }
+    }
+
+    @Test
+    fun `join inline within a paragraph`() {
+        execute(".var {abc}\n  - A\n  - B\n  - C\n\nLetters: .abc::join body:{x: .x}.") {
+            assertEquals("<p>Letters: A, B, C.</p>", it)
+        }
+    }
+
+    @Test
+    fun `join with indices destructured in body`() {
+        execute(
+            """
+            .var {abc}
+              - A
+              - B
+              - C
+
+            .abc::withindices::join
+                index letter:
+                .index::text script:{sup} **.letter**
+            """.trimIndent(),
+        ) {
+            assertEquals(
+                "<p><sup>1</sup> <strong>A</strong>, <sup>2</sup> <strong>B</strong>, <sup>3</sup> <strong>C</strong></p>",
+                it,
+            )
+        }
+    }
+
+    @Test
+    fun `join of multi-line bodies with declarations stays inline`() {
+        execute(
+            """
+            .var {names}
+              - Gio
+              - Alice
+
+            .var {info}
+                .names::foreach
+                    name:
+                    .var {x} {1}
+
+                    .name .x
+
+            .info::join
+            """.trimIndent(),
+        ) {
+            assertEquals("<p>Gio 1, Alice 1</p>", it)
+        }
+    }
+
+    @Test
+    fun `join of multi-line bodies with node results stays inline`() {
+        execute(
+            """
+            .var {names}
+              - Gio
+              - Alice
+
+            .var {meta}
+              .dictionary
+                - Gio: 1
+                - Alice: 2
+
+            .var {info}
+                .names::foreach
+                    name:
+                    .var {entries} {.meta::withindices::findall {index entry: .entry::first::equals {.name}}}
+
+                    .name .entries::join body:{.1::first}
+
+            .info::join
+            """.trimIndent(),
+        ) {
+            assertEquals("<p>Gio 1, Alice 2</p>", it)
+        }
+    }
+
+    @Test
+    fun `join of bodies with a failing call keeps the error`() {
+        execute(
+            """
+            .var {names}
+              - Gio
+
+            .var {info}
+                .names::foreach
+                    name:
+                    .var {x} {1}
+
+                    .name .undefinedfunction
+
+            .info::join
+            """.trimIndent(),
+            errorHandler = BasePipelineErrorHandler(),
+        ) {
+            assertContains(it, "Error")
+            assertContains(it, "undefinedfunction")
+        }
+    }
+
+    @Test
+    fun `join of empty collection produces nothing`() {
+        execute(".range from:{1} to:{0}::join body:{x: .x}") {
+            assertEquals("", it)
         }
     }
 

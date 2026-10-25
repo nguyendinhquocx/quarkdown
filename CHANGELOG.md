@@ -78,6 +78,19 @@ The new `and` and `or` functions combine two boolean values, complementing the e
     x is between 0 and 10
 ```
 
+#### [New collection operation: `contains`](https://quarkdown.com/wiki/boolean#operators)
+
+The new `contains` function checks whether a string contains some text, a collection contains an element, or a dictionary contains a key.
+
+```markdown
+.var {letters}
+    - A
+    - B
+
+.if {.letters::contains {B}}
+    B is in the list
+```
+
 #### [New collection operation: `withindices`](https://quarkdown.com/wiki/loops#indices)
 
 The new `withindices` function turns a collection into a dictionary that maps each element's position, starting at 1, to the element itself.
@@ -96,9 +109,10 @@ This makes numbered iteration straightforward.
 > 1 A
 > 2 B
 
-#### [New collection operation: `findfirst`](https://quarkdown.com/wiki/loops#find-element)
+#### [New collection operations: `findfirst` and `findall`](https://quarkdown.com/wiki/loops#find-elements)
 
 The new `findfirst` function returns the first element of a collection that satisfies a condition, or `none` if there is no such element.
+`findall` returns all of them as a new collection instead, like a filter.
 
 ```markdown
 .var {numbers}
@@ -110,10 +124,9 @@ The new `findfirst` function returns the first element of a collection that sati
 ```
 > Output: `8`
 
-#### [New collection operation: `joinstring`](https://quarkdown.com/wiki/iterable)
+#### [New loop: `join`](https://quarkdown.com/wiki/loops#join)
 
-The new `joinstring` function concatenates the elements of a collection into a single string.
-Elements are separated by `, ` by default, or by a custom `separator`.
+The new `join` function merges the elements of a collection into a single inline content, separated by `, ` or by a custom `separator`.
 
 ```markdown
 .var {letters}
@@ -121,11 +134,54 @@ Elements are separated by `, ` by default, or by a custom `separator`.
     - B
     - C
 
-.letters::joinstring 
+.letters::join
 ```
-> Output: `A, B, C`
+> Output: A, B, C
+
+Like `foreach`, it also accepts a body that transforms each element before joining.
+
+```markdown
+.letters::withindices::join
+    index letter:
+    .index **.letter**
+```
+> Output: 1 **A**, 2 **B**, 3 **C**
+
+#### New string operation: `split`
+
+The new `split` function breaks a string into a collection of its parts, delimited by `, ` or by a custom `separator`.
+
+```markdown
+.var {date} {2026-10-24}
+
+.date::split separator:{-}::first
+```
+> Output: `2026`
+
+#### [New factory functions: `emptycollection` and `emptydictionary`](https://quarkdown.com/wiki/iterable)
+
+The new `emptycollection` and `emptydictionary` functions create an empty collection and an empty dictionary, respectively.
+
+```markdown
+.emptycollection::size
+```
+> Output: `0`
+
+### Changed
+
+#### Sidebar stays hidden while selecting text
+
+In the HTML view of `plain` and `paged` documents, dragging the mouse to select text across the right edge of the page no longer expands the navigation sidebar.
 
 ### Fixed
+
+#### Missing lines at page breaks
+
+In `paged` documents, a page could lose its last lines when either:
+- the last line of a page ended with a word hyphenated by the browser
+- a footnote needed more room at the bottom of its page than Quarkdown had reserved for it
+
+Page breaks no longer split words, footnotes are measured correctly, and long links in footnotes now wrap. 
 
 #### [Custom fonts in slides](https://quarkdown.com/wiki/font-configuration)
 
@@ -140,6 +196,10 @@ Thanks @YoannDev90!
 #### Stack traces when the export port is taken
 
 When the port used to serve the document during PDF export was already in use, Quarkdown already moved on to the next free port, but printed a `java.net.BindException` stack trace for every occupied port it went through. The scan is now quiet on `info` and higher log levels.
+
+#### Iterating a dictionary stored in a variable
+
+Fixed an issue that caused a dictionary assigned to a variable, such as `.var {x} {.data::dictionary}`, to be rejected by functions that accept a collection, like `.withindices` or `.foreach`.
 
 ## [2.6.4] - 2026-10-09
 

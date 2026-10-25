@@ -62,7 +62,31 @@ The **`.repeat {times}`** function is a shorthand for `.foreach {1..times}`.
     .repeat {3}
         .1
 
-## Find element
+## Join
+
+The **`.join`** function merges the elements of an iterable into a single inline content, separated by `, ` or by a custom `separator`.
+
+.examplemirror
+    .var {letters}
+      - A
+      - B
+      - C
+
+    .letters::join
+
+Like `.foreach`, it accepts a [lambda](lambda.qd) block that transforms each element before joining.
+
+.examplemirror
+    .var {letters}
+      - A
+      - B
+      - C
+
+    .letters::withindices::join
+        index letter:
+        .index::text script:{sup} **.letter**
+
+## Find elements
 
 The **`.findfirst`** function loops over an iterable until an element satisfies a condition, and returns that element.
 Like `.foreach`, it accepts an [`Iterable`](iterable.qd) value and a single-parameter [lambda](lambda.qd) block, which must return a [boolean](boolean.qd).
@@ -84,3 +108,13 @@ If no element satisfies the condition, the result is [`none`](none.qd).
       - C
 
     .letters::withindices::findfirst {index letter: .letter::equals {B}}::first
+
+The **`.findall`** function works the same way, but returns a collection of all the elements that satisfy the condition.
+
+.examplemirror
+    .var {numbers}
+      - 3
+      - 8
+      - 12
+
+    .numbers::findall {n: .n::isgreater than:{5}}::join
