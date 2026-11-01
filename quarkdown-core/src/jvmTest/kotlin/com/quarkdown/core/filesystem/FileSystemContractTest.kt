@@ -23,6 +23,24 @@ sealed class FileSystemContractTest {
     }
 
     @Test
+    fun `reads through parent segments without normalizing`() {
+        assertTrue(fs.resolve("sub/../file.txt").exists)
+        assertEquals("content", fs.resolve("sub/../file.txt").readText())
+        assertEquals("inner", fs.resolve("sub").resolve("../sub/inner.txt").readText())
+    }
+
+    @Test
+    fun `lists children of a directory with parent segments under the requested path`() {
+        val dir = fs.resolve("sub/..")
+        val children = dir.children()
+        assertTrue(children.isNotEmpty())
+        children.forEach { child ->
+            assertEquals(dir, child.parent)
+            assertEquals(child.name, child.relativeTo(dir)?.fullPath)
+        }
+    }
+
+    @Test
     fun `resolves absolute paths as-is`() {
         val absolute = fs.resolve("file.txt")
         assertTrue(absolute.isAbsolute)
